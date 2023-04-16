@@ -6,13 +6,79 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-    <TextView
+    <LinearLayout
+        android:id="@+id/linearLayout"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:orientation="vertical"
+        app:layout_constraintBottom_toTopOf="@+id/buttons"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <TextView
+            android:id="@+id/before"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="before:" />
+
+        <com.example.phonecallenhancement.VisualizerView
+            android:id="@+id/beforeWave"
+            android:layout_width="match_parent"
+            android:layout_height="100dp"
+            android:layout_marginTop="0dp"
+            android:layout_marginBottom="0dp"
+            android:layout_weight="1" />
+
+        <TextView
+            android:id="@+id/after"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="after:" />
+
+        <com.example.phonecallenhancement.VisualizerView
+            android:id="@+id/afterWave"
+            android:layout_width="match_parent"
+            android:layout_height="100dp"
+            android:layout_marginTop="0dp"
+            android:layout_marginBottom="0dp"
+            android:layout_weight="1" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/buttons"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Hello World!"
+        android:orientation="vertical"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent">
+
+        <Button
+            android:id="@+id/btnStartService"
+            android:layout_width="270dp"
+            android:layout_height="wrap_content"
+            android:onClick="onButtonClick"
+            android:text="start_service" />
+
+        <Button
+            android:id="@+id/btnPauseService"
+            android:layout_width="270dp"
+            android:layout_height="wrap_content"
+            android:onClick="onButtonClick"
+            android:text="pause_service" />
+
+        <Button
+            android:id="@+id/btnStopService"
+            android:layout_width="270dp"
+            android:layout_height="wrap_content"
+            android:onClick="onButtonClick"
+            android:text="stop_service" />
+    </LinearLayout>
+
 
 </androidx.constraintlayout.widget.ConstraintLayout>
