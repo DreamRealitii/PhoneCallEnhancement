@@ -7,11 +7,13 @@ import androidx.core.content.res.ResourcesCompat;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioRecord;
 import android.media.MediaRecorder;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
@@ -93,7 +95,16 @@ public class MainActivity extends AppCompatActivity {
 
     public void onButtonClick(View view) {
         Button b = (Button) view;
-        Toast.makeText(this, "You clicked on " + b.getText(), Toast.LENGTH_SHORT).show();
+        if (b.equals(findViewById(R.id.btnStartService))) {
+            Toast.makeText(this, "HI! " + b.getText(), Toast.LENGTH_SHORT).show();
+//            Example to open web
+//            String url = "http://www.twitter.com";
+//            Intent i = new Intent(Intent.ACTION_VIEW);
+//            i.setData(Uri.parse(url));
+//            startActivity(i);
+        } else {
+            Toast.makeText(this, "You clicked on " + b.getText(), Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void checkRecordAudioPermission() {
