@@ -28,6 +28,13 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 public class MainActivity extends AppCompatActivity {
 
+    // TODO (Walkie-Talkie protocol):
+    //  1) Get recording audio file from mic
+    //  2) send it over websocket
+    //  3) receive back reply and decode the data of Stringbase64Data
+    //  4) Got audio file, "enhance" it + transcript
+    //  5) Repeat step 1
+
     // CONSTANTS
     public static int MY_PERMISSIONS_RECORD_AUDIO = 1;
     public static int MY_PERMISSIONS_INTERNET = 2;
