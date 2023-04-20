@@ -33,7 +33,7 @@ public class MainActivity extends AppCompatActivity {
     public static int MY_PERMISSIONS_INTERNET = 2;
 
     // UI COMPONENTS
-    private Button startService, pauseService, stopService;
+    private Button startService, pauseService, stopService, recordBttn;
     private ActionBar actionBar;
     private AudioRecord audioRecord;
     private VisualizerView BeforeProcessWave, AfterProcessWave;
@@ -53,9 +53,7 @@ public class MainActivity extends AppCompatActivity {
         ExecutorService executorService = Executors.newFixedThreadPool(4);
 
 
-        startService = this.findViewById(R.id.btnStartService);
-        pauseService = this.findViewById(R.id.btnPauseService);
-        stopService = this.findViewById(R.id.btnStopService);
+        recordBttn = this.findViewById(R.id.recordButton);
         BeforeProcessWave = this.findViewById(R.id.beforeWave);
         AfterProcessWave = this.findViewById(R.id.afterWave);
 
@@ -95,7 +93,7 @@ public class MainActivity extends AppCompatActivity {
 
     public void onButtonClick(View view) {
         Button b = (Button) view;
-        if (b.equals(findViewById(R.id.btnStartService))) {
+        if (b.equals(findViewById(R.id.recordButton))) {
             Toast.makeText(this, "HI! " + b.getText(), Toast.LENGTH_SHORT).show();
 //            Example to open web
 //            String url = "http://www.twitter.com";
@@ -168,7 +166,7 @@ public class MainActivity extends AppCompatActivity {
         // wave form to a Canvas.
 
         Timer timer = new Timer();
-        long interval = 100; // 1/20 second in milliseconds
+        long interval = 50; // 1/20 second in milliseconds
 
         timer.scheduleAtFixedRate(new TimerTask() {
             @Override
@@ -176,7 +174,7 @@ public class MainActivity extends AppCompatActivity {
                 // This code will be executed every 1/20 second
                 try {
                     BeforeProcessWave.updateVisualizer(getAudioData());
-                    AfterProcessWave.updateVisualizer(getAudioData());
+//                    AfterProcessWave.updateVisualizer(getAudioData());
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
