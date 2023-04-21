@@ -13,7 +13,7 @@ import android.view.View;
  * A simple class that draws waveform data received from a
  * {@link Visualizer.OnDataCaptureListener#onWaveFormDataCapture }
  */
-class VisualizerView extends View {
+public class VisualizerView extends View {
     private short[] mShorts;
     private float[] mPoints;
     private final Rect mRect = new Rect();
