@@ -22,11 +22,11 @@ public class MainActivity extends AppCompatActivity {
                 .setRecordDirPath(Environment.getExternalStorageDirectory().getPath()) // optional & default value
                 .setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB) // optional & default value
                 .setOutputFormat(MediaRecorder.OutputFormat.AMR_NB) // optional & default value
-                .setAudioSource(MediaRecorder.AudioSource.VOICE_COMMUNICATION) // optional & default value
+                .setAudioSource(MediaRecorder.AudioSource.VOICE_RECOGNITION) // optional & default value
                 .setShowSeed(true) // optional & default value ->Ex: RecordFileName_incoming.amr || RecordFileName_outgoing.amr
                 .build();
 
-
+        System.out.println(Environment.getExternalStorageDirectory().getPath());
         callRecord.startCallReceiver();
     }
 }
