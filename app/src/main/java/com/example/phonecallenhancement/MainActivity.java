@@ -2,6 +2,7 @@ package com.example.phonecallenhancement;
 
 import static android.util.Base64.URL_SAFE;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
@@ -70,7 +71,9 @@ public class MainActivity extends AppCompatActivity {
     // CONSTANTS
     public static int MY_PERMISSIONS_RECORD_AUDIO = 1;
     public static int MY_PERMISSIONS_INTERNET = 2;
-    private static final String TAG = "Romero";
+    // Filter usage for logcat:
+    // package:mine & (level:error | level:debug & tag:Debugging)
+    private static final String TAG = "Debugging";
 
     // UI COMPONENTS
     private ToggleButton recordButton;
@@ -86,7 +89,10 @@ public class MainActivity extends AppCompatActivity {
 
     // koala API that is used for speech enhancement https://picovoice.ai/docs/koala/
     // cheeatah API for real-time transcription https://picovoice.ai/platform/cheetah/
+    // leopard API for asynchronous transcription https://picovoice.ai/platform/cat/
     // nb: can use google speech-to-text but above 2 is easier to use
+    // nb2: Spent 15+ hrs trying to make google speech-to-text work but it's impossible to do...
+
     public Koala koala;
     private static final String MODEL_FILE = "leopard_params.pv";
     private Leopard leopard;
@@ -100,6 +106,7 @@ public class MainActivity extends AppCompatActivity {
     private MediaPlayer referenceMediaPlayer;
     private MediaPlayer enhancedMediaPlayer;
     private MicrophoneReader microphoneReader;
+    private final AtomicBoolean stop = new AtomicBoolean(false);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -113,22 +120,22 @@ public class MainActivity extends AppCompatActivity {
         transcriptText = this.findViewById(R.id.transcriptContentTv);
 
         actionBar = getSupportActionBar();
-        actionBar.setTitle("Jancok");
+        actionBar.setTitle("Speech Enhancement");
         actionBar.setBackgroundDrawable(ResourcesCompat.getDrawable(getResources(), R.drawable.bg, null));
         actionBar.setHomeButtonEnabled(true);
         actionBar.setDisplayOptions(ActionBar.DISPLAY_HOME_AS_UP);
 
         initKoala();
-        Log.d("Romero","koala rate: " + koala.getSampleRate()); //16000 hz
+        Log.d(TAG,"koala rate: " + koala.getSampleRate()); //16000 hz
         initLeopard();
         Log.d(TAG, "Leopard version: " + leopard.getVersion());
 
         microphoneReader = new MicrophoneReader();
 
         referenceFilepath = getApplicationContext().getFileStreamPath("reference.wav").getAbsolutePath();
-        Log.d("Romero", "referenceFilepath: " + referenceFilepath);
+        Log.d(TAG, "referenceFilepath: " + referenceFilepath);
         enhancedFilepath = getApplicationContext().getFileStreamPath("enhanced.wav").getAbsolutePath();
-        Log.d("Romero", "enhancedFilepath: " + enhancedFilepath);
+        Log.d(TAG, "enhancedFilepath: " + enhancedFilepath);
         referenceMediaPlayer = new MediaPlayer();
         enhancedMediaPlayer = new MediaPlayer();
         // Disable looping
@@ -140,12 +147,14 @@ public class MainActivity extends AppCompatActivity {
         setVolumeControlStream(AudioManager.STREAM_MUSIC);
         checkRecordAudioPermission();
         checkInternetPermission();
-        setupVisualizerFxAndUI();
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        if (isFinishing() && audioRecord != null) {
+            stopRecording();
+        }
         if (referenceMediaPlayer != null) {
             referenceMediaPlayer.release();
         }
@@ -165,7 +174,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == MY_PERMISSIONS_RECORD_AUDIO) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
@@ -177,7 +186,7 @@ public class MainActivity extends AppCompatActivity {
                     throw new RuntimeException(e);
                 }
 
-                startRecording();
+                audioRecord.startRecording();
             } else {
                 // Permission has been denied, show a message to the user or handle the error
                 Toast.makeText(this, "Audio capture permission denied", Toast.LENGTH_SHORT).show();
@@ -200,11 +209,16 @@ public class MainActivity extends AppCompatActivity {
                 }
 
                 if (hasRecordPermission()) {
+                    stop.set(false);
+                    startRecording();
+                    setupVisualizerFxAndUI();
+
                     microphoneReader.start();
                 } else {
                     checkRecordAudioPermission();
                 }
             } else {
+                stop.set(true);
                 microphoneReader.stop();
 
                 resetMediaPlayer(referenceMediaPlayer, referenceFilepath);
@@ -225,6 +239,17 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void onKoalaInitError(String error) {
+        TextView errorMessage = findViewById(R.id.errorMessage);
+        errorMessage.setText(error);
+        errorMessage.setVisibility(View.VISIBLE);
+
+        recordButton.setEnabled(false);
+        recordButton.setError("error");
+    }
+
+    //--------HELPERS----------
+
     private String wavToBase64(String path) {
 
         byte[] bytes = new byte[0];
@@ -241,26 +266,6 @@ public class MainActivity extends AppCompatActivity {
 
         return encoded;
     }
-
-    public void onButtonClick(View view) {
-        Button b = (Button) view;
-        if (b.equals(findViewById(R.id.recordButton))) {
-            Toast.makeText(this, "HI! " + b.getText(), Toast.LENGTH_SHORT).show();
-        } else {
-            Toast.makeText(this, "You clicked on " + b.getText(), Toast.LENGTH_SHORT).show();
-        }
-    }
-
-    private void onKoalaInitError(String error) {
-        TextView errorMessage = findViewById(R.id.errorMessage);
-        errorMessage.setText(error);
-        errorMessage.setVisibility(View.VISIBLE);
-
-        recordButton.setEnabled(false);
-        recordButton.setError("error");
-    }
-
-    //--------HELPERS----------
 
     private void initKoala() {
         try {
@@ -302,11 +307,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void displayError(String message) {
-        ToggleButton recordButton = findViewById(R.id.recordButton);
-        recordButton.setEnabled(false);
-    }
-
     private boolean hasRecordPermission() {
         return ActivityCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED;
     }
@@ -315,9 +315,6 @@ public class MainActivity extends AppCompatActivity {
         if (!hasRecordPermission()) {
             // Permission has not been granted yet, request it from the user
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, MY_PERMISSIONS_RECORD_AUDIO);
-        } else {
-            // Permission has already been granted, proceed with audio capture
-            startRecording();
         }
     }
 
@@ -343,7 +340,7 @@ public class MainActivity extends AppCompatActivity {
             public void run() {
                 short[] buffer = new short[bufferSize];
                 audioRecord.startRecording();
-                while (!Thread.currentThread().isInterrupted()) {
+                while (!stop.get()) {
                     int numBytes = audioRecord.read(buffer, 0, bufferSize);
                     short[] data = new short[numBytes];
                     System.arraycopy(buffer, 0, data, 0, numBytes);
@@ -361,8 +358,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void stopRecording() {
-        audioRecord.stop();
-        audioRecord.release();
+        if (!stop.get()) {
+            audioRecord.stop();
+            audioRecord.release();
+        }
     }
 
     private void setupVisualizerFxAndUI() {
@@ -377,8 +376,13 @@ public class MainActivity extends AppCompatActivity {
             public void run() {
                 // This code will be executed every 1/20 second
                 try {
-                    beforeProcessWave.updateVisualizer(getAudioData());
+                    if (audioDataQueue == null) {
+                        beforeProcessWave.updateVisualizer(null);
+//                    AfterProcessWave.updateVisualizer(null);
+                    } else {
+                        beforeProcessWave.updateVisualizer(getAudioData());
 //                    AfterProcessWave.updateVisualizer(getAudioData());
+                    }
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
