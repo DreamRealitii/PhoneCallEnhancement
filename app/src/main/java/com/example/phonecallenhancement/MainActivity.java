@@ -1,5 +1,7 @@
 package com.example.phonecallenhancement;
 
+import static android.util.Base64.URL_SAFE;
+
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
@@ -16,6 +18,7 @@ import android.media.MediaPlayer;
 import android.media.MediaRecorder;
 import android.os.Bundle;
 import android.os.Process;
+import android.util.Base64;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -28,6 +31,8 @@ import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -44,6 +49,14 @@ import ai.picovoice.koala.KoalaActivationRefusedException;
 import ai.picovoice.koala.KoalaActivationThrottledException;
 import ai.picovoice.koala.KoalaException;
 import ai.picovoice.koala.KoalaInvalidArgumentException;
+import ai.picovoice.leopard.Leopard;
+import ai.picovoice.leopard.LeopardActivationException;
+import ai.picovoice.leopard.LeopardActivationLimitException;
+import ai.picovoice.leopard.LeopardActivationRefusedException;
+import ai.picovoice.leopard.LeopardActivationThrottledException;
+import ai.picovoice.leopard.LeopardException;
+import ai.picovoice.leopard.LeopardInvalidArgumentException;
+import ai.picovoice.leopard.LeopardTranscript;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -65,6 +78,7 @@ public class MainActivity extends AppCompatActivity {
     private AudioRecord audioRecord;
     private VisualizerView beforeProcessWave, afterProcessWave;
     private TextView recordedText;
+    private TextView transcriptText;
 
     //---------FIELDS------------
 
@@ -74,6 +88,8 @@ public class MainActivity extends AppCompatActivity {
     // cheeatah API for real-time transcription https://picovoice.ai/platform/cheetah/
     // nb: can use google speech-to-text but above 2 is easier to use
     public Koala koala;
+    private static final String MODEL_FILE = "leopard_params.pv";
+    private Leopard leopard;
     private int bufferSize;
     private BlockingQueue<short[]> audioDataQueue;
     public short[] getAudioData() throws InterruptedException {
@@ -94,6 +110,7 @@ public class MainActivity extends AppCompatActivity {
         beforeProcessWave = this.findViewById(R.id.beforeWave);
         afterProcessWave = this.findViewById(R.id.afterWave);
         recordedText = this.findViewById(R.id.recordedText);
+        transcriptText = this.findViewById(R.id.transcriptContentTv);
 
         actionBar = getSupportActionBar();
         actionBar.setTitle("Jancok");
@@ -103,6 +120,8 @@ public class MainActivity extends AppCompatActivity {
 
         initKoala();
         Log.d("Romero","koala rate: " + koala.getSampleRate()); //16000 hz
+        initLeopard();
+        Log.d(TAG, "Leopard version: " + leopard.getVersion());
 
         microphoneReader = new MicrophoneReader();
 
@@ -134,6 +153,7 @@ public class MainActivity extends AppCompatActivity {
             enhancedMediaPlayer.release();
         }
         koala.delete();
+        leopard.delete();
     }
 
     @Override
@@ -190,14 +210,36 @@ public class MainActivity extends AppCompatActivity {
                 resetMediaPlayer(referenceMediaPlayer, referenceFilepath);
                 resetMediaPlayer(enhancedMediaPlayer, enhancedFilepath);
 
+                LeopardTranscript transcript = leopard.processFile(referenceFilepath);
+                transcriptText.setText(transcript.getTranscriptString());
+                // Log.d(TAG, "transcript: " + transcript.getTranscriptString());
+
                 // play on speaker
                 // and disable looping playback
                 referenceMediaPlayer.start();
                 enhancedMediaPlayer.start();
             }
-        } catch (InterruptedException | IOException e) {
-            Toast.makeText(this, "Audio stop command interrupted\n", Toast.LENGTH_SHORT).show();
+        } catch (InterruptedException | IOException | LeopardException e) {
+            e.printStackTrace();
+            // Toast.makeText(this, "Audio stop command interrupted\n", Toast.LENGTH_SHORT).show();
         }
+    }
+
+    private String wavToBase64(String path) {
+
+        byte[] bytes = new byte[0];
+
+        try {
+            bytes = Files.readAllBytes(Paths.get(path));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        String encoded = Base64.encodeToString(bytes, URL_SAFE);
+        //String encoded = new String(Base64.encodeBase64URLSafe(bytes));
+//        Log.d(TAG, "wavToBase64: " + encoded);
+
+        return encoded;
     }
 
     public void onButtonClick(View view) {
@@ -236,6 +278,33 @@ public class MainActivity extends AppCompatActivity {
         } catch (KoalaException e) {
             onKoalaInitError("Failed to initialize Koala " + e.getMessage());
         }
+    }
+
+    private void initLeopard() {
+        try {
+            leopard = new Leopard.Builder()
+                    .setAccessKey(ACCESS_KEY)
+                    .setModelPath(MODEL_FILE)
+                    .setEnableAutomaticPunctuation(true)
+                    .build(getApplicationContext());
+        } catch (LeopardInvalidArgumentException e) {
+            onKoalaInitError(String.format("%s\nEnsure your AccessKey '%s' is valid", e.getMessage(), ACCESS_KEY));
+        } catch (LeopardActivationException e) {
+            onKoalaInitError("AccessKey activation error");
+        } catch (LeopardActivationLimitException e) {
+            onKoalaInitError("AccessKey reached its device limit");
+        } catch (LeopardActivationRefusedException e) {
+            onKoalaInitError("AccessKey refused");
+        } catch (LeopardActivationThrottledException e) {
+            onKoalaInitError("AccessKey has been throttled");
+        } catch (LeopardException e) {
+            onKoalaInitError("Failed to initialize Leopard " + e.getMessage());
+        }
+    }
+
+    private void displayError(String message) {
+        ToggleButton recordButton = findViewById(R.id.recordButton);
+        recordButton.setEnabled(false);
     }
 
     private boolean hasRecordPermission() {
