@@ -12,10 +12,6 @@ import android.media.AudioAttributes;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioRecord;
-import android.media.MediaCodec;
-import android.media.MediaCodecInfo;
-import android.media.MediaCodecList;
-import android.media.MediaFormat;
 import android.media.MediaPlayer;
 import android.media.MediaRecorder;
 import android.os.Bundle;
@@ -343,25 +339,8 @@ public class MainActivity extends AppCompatActivity {
         private RandomAccessFile referenceFile;
         private RandomAccessFile enhancedFile;
         private int totalSamplesWritten;
-        private final MediaCodecList mediaCodecList = new MediaCodecList(MediaCodecList.REGULAR_CODECS);
-        private final MediaFormat mediaFormat = MediaFormat.createAudioFormat(MediaFormat.MIMETYPE_AUDIO_FLAC, koala.getSampleRate(), 1);
-        private final MediaCodec mediaCodec;
-        {
-            try {
-                String format = mediaCodecList.findEncoderForFormat(mediaFormat);
-                mediaCodec = MediaCodec.createByCodecName(format);
-                mediaCodec.configure(mediaFormat, null, MediaCodec.CONFIGURE_FLAG_ENCODE, null);
-                Log.d(TAG, "mediaCodec: " + mediaCodec.getCanonicalName());
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
 
         void start() throws IOException {
-//            // Debug
-//            for (MediaCodecInfo m : mediaCodecList.getCodecInfos()) {
-//                Log.d("Romero", m.getCanonicalName());
-//            }
 
             if (started.get()) {
                 return;

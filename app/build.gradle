@@ -49,6 +49,17 @@ dependencies {
 
     implementation 'com.google.android.gms:play-services-location:17.0.0'
     implementation 'ai.picovoice:koala-android:1.0.0'
-    implementation 'com.google.cloud:google-cloud-speech:4.10.0'
-    implementation 'io.grpc:grpc-okhttp:1.41.0'
+//    implementation 'com.google.cloud:google-cloud-speech:4.10.0'
+//    implementation 'io.grpc:grpc-okhttp:1.41.0'
+
+    implementation ('com.squareup.retrofit2:retrofit:2.9.0') {
+        exclude module: 'okhttp'
+    }
+    // implementation 'com.google.code.gson:gson:2.10.1'
+    implementation 'com.squareup.moshi:moshi-kotlin:1.14.0'
+    implementation 'com.squareup.retrofit2:converter-moshi:2.9.0'
+
+    implementation 'com.squareup.okhttp3:logging-interceptor:4.9.3'
+    implementation 'com.squareup.okhttp3:okhttp:4.9.3'
+
 }
