@@ -43,6 +43,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import Sound.VolumeControl;
 import ai.picovoice.koala.Koala;
 import ai.picovoice.koala.KoalaActivationException;
 import ai.picovoice.koala.KoalaActivationLimitException;
@@ -481,7 +482,8 @@ public class MainActivity extends AppCompatActivity {
                 int enhancedSamplesWritten = 0;
                 while (!stop.get()) {
                     if (audioRecord.read(frameBuffer, 0, frameBuffer.length) == frameBuffer.length) {
-                        final short[] frameBufferEnhanced = koala.process(frameBuffer);
+                        short[] frameBufferEnhanced = koala.process(frameBuffer);
+                        VolumeControl.NormalizeVolume(frameBufferEnhanced);
 
                         writeFrame(referenceFile, frameBuffer);
                         totalSamplesWritten += frameBuffer.length;
@@ -509,7 +511,8 @@ public class MainActivity extends AppCompatActivity {
                 short[] emptyFrame = new short[koala.getFrameLength()];
                 Arrays.fill(emptyFrame, (short) 0);
                 while (enhancedSamplesWritten < totalSamplesWritten) {
-                    final short[] frameBufferEnhanced = koala.process(emptyFrame);
+                    short[] frameBufferEnhanced = koala.process(emptyFrame);
+                    VolumeControl.NormalizeVolume(frameBufferEnhanced);
                     writeFrame(enhancedFile, frameBufferEnhanced);
                     enhancedSamplesWritten += frameBufferEnhanced.length;
                 }
