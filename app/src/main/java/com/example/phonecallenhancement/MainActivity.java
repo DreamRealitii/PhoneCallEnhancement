@@ -27,6 +27,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
@@ -72,6 +73,9 @@ public class MainActivity extends AppCompatActivity {
     // CONSTANTS
     public static int MY_PERMISSIONS_RECORD_AUDIO = 1;
     public static int MY_PERMISSIONS_INTERNET = 2;
+    public static int MY_PERMISSIONS_READ_MEDIA_VIDEO = 3;
+
+
     // Filter usage for logcat:
     // package:mine & (level:error | level:debug & tag:Debugging)
     private static final String TAG = "Debugging";
@@ -199,7 +203,9 @@ public class MainActivity extends AppCompatActivity {
 
     //---------LISTENERS--------------
     public void onClickConnect(View view) {
-        ws w = new ws();
+        checkWriteStoragePermission();
+        File cache = getCacheDir();
+        ws w = new ws(cache);
     }
 
     public void onClickRecord(View view) {
@@ -325,6 +331,15 @@ public class MainActivity extends AppCompatActivity {
     private void checkInternetPermission() {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.INTERNET) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.INTERNET}, MY_PERMISSIONS_INTERNET);
+        }
+    }
+
+    private void checkWriteStoragePermission() {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_VIDEO) != PackageManager.PERMISSION_GRANTED) {
+            Log.i("WebSocket", "not granted");
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_MEDIA_VIDEO}, MY_PERMISSIONS_READ_MEDIA_VIDEO);
+        }else{
+            Log.i("WebSocket", "granted");
         }
     }
 
