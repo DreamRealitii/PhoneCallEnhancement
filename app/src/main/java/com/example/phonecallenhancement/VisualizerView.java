@@ -42,6 +42,9 @@ public class VisualizerView extends View {
     }
 
     public static short[] bytesToShorts(byte[] byteData) {
+        if (byteData == null) {
+            return null;
+        }
         short[] shortData = new short[byteData.length];
         for (int i = 0; i < byteData.length; i++) {
             shortData[i] = (short) byteData[i];
