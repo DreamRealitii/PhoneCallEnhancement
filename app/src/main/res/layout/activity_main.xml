@@ -92,12 +92,12 @@
         app:layout_constraintTop_toBottomOf="@id/guiddelineMid2" />
 
     <ToggleButton
-        android:id="@+id/recordButton2"
+        android:id="@+id/connectButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:onClick="onClickConnect"
         android:textOff="Connect"
-        android:textOn="Stop"
+        android:textOn="Disconnect"
         app:layout_constraintBottom_toTopOf="@+id/guiddelineBottom"
         app:layout_constraintEnd_toStartOf="@+id/guidelineEnd"
         app:layout_constraintHorizontal_bias="0.932"

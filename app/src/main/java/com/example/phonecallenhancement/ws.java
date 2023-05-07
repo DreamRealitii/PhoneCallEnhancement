@@ -18,16 +18,22 @@ import tech.gusavila92.websocketclient.WebSocketClient;
 public class ws {
     private WebSocketClient webSocketClient;
     private File cache;
-
+    private Boolean connected;
     public ws(File cache) {
         this.cache = cache;
         createWebSocketClient();
+        connected = true;
+    }
+
+    public void toggle() {
+        connected = !connected;
     }
     //protected void onCreate(Bundle savedInstanceState) {
     //    createWebSocketClient();
     //}
 
     public void sendAudio(String s) {
+        if(!connected) {
             File file = new File(s);
             StringBuilder encodedString = new StringBuilder();
             try {
@@ -41,11 +47,14 @@ public class ws {
                 fileInputStream.close();
                 //webSocketClient.send(s.toString());
                 webSocketClient.send("MobileClient>" + encodedString.toString());
-            }catch(Exception e){
+            } catch (Exception e) {
                 e.printStackTrace();
             }
             Log.i("WebSocket", "Done sending!");
-        //webSocketClient.send(s);
+            //webSocketClient.send(s);
+        }else{
+            Log.i("WebSocket", "DISCONNECTED!");
+        }
     }
 
     private void createWebSocketClient() {
@@ -63,7 +72,7 @@ public class ws {
             @Override
             public void onOpen() {
                 Log.i("WebSocket", "Session is starting");
-                webSocketClient.send("11>Hello World!");
+                webSocketClient.send("MobileClient>Hello World!");
             }
 
             @Override
@@ -123,6 +132,7 @@ public class ws {
             public void onCloseReceived() {
                 Log.i("WebSocket", "Closed ");
                 System.out.println("onCloseReceived");
+                connected = false;
             }
         };
 

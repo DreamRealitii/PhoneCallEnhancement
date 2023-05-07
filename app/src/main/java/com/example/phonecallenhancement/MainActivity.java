@@ -207,7 +207,10 @@ public class MainActivity extends AppCompatActivity {
     public void onClickConnect(View view) {
         checkWriteStoragePermission();
         File cache = getCacheDir();
-        webSocket = new ws(cache);
+        if(webSocket == null) {
+            webSocket = new ws(cache);
+        }
+        webSocket.toggle();
     }
 
     public void onClickRecord(View view) {
