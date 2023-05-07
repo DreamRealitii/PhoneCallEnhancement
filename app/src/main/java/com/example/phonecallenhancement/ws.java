@@ -11,7 +11,10 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Queue;
 
 import tech.gusavila92.websocketclient.WebSocketClient;
 
@@ -21,11 +24,14 @@ public class ws {
     private Boolean connected;
     private byte[] decodedBytes;
 
+    private Queue<byte[]> receivedInformation;
+
     public ws(File cache) {
         this.cache = cache;
         createWebSocketClient();
         connected = true;
         decodedBytes = null;
+        receivedInformation = new ArrayDeque<>();
     }
 
     public void toggle() {
@@ -61,11 +67,10 @@ public class ws {
     }
 
     public byte[] getAudio() {
-        if (decodedBytes == null) {
-            return null;
-        } else {
-            return decodedBytes;
-        }
+       if(receivedInformation.size() == 0) {
+           return null;
+       }
+       return receivedInformation.poll();
     }
 
     private void createWebSocketClient() {
@@ -97,7 +102,9 @@ public class ws {
                     String b64Data = s.split(">")[1];
                     //Log.i("WebSocket", b64Data);
                     decodedBytes = Base64.getDecoder().decode(b64Data.getBytes());
+                    receivedInformation.add(decodedBytes);
                     //Log.i("WebSocket", Environment.getExternalStorageDirectory().toString());
+                    /*
                     File outputFile = File.createTempFile("file", ".webm", cache);
                     outputFile.deleteOnExit();
                     Log.i("WebSocket",outputFile.toString());
@@ -114,6 +121,8 @@ public class ws {
                         Log.i("WebSocket", "Err" + e.getMessage());
                         e.printStackTrace();
                     }
+
+                     */
                     Log.i("WebSocket", "Done");
                 } catch (Exception e) {
                     // TODO: handle exception
