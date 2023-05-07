@@ -198,6 +198,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
     //---------LISTENERS--------------
+    public void onClickConnect(View view) {
+        ws w = new ws();
+    }
 
     public void onClickRecord(View view) {
         try {
@@ -558,4 +561,6 @@ public class MainActivity extends AppCompatActivity {
             outputFile.write(byteBuf.array());
         }
     }
+
+
 }
