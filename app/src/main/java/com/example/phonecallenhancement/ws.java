@@ -19,10 +19,13 @@ public class ws {
     private WebSocketClient webSocketClient;
     private File cache;
     private Boolean connected;
+    private byte[] decodedBytes;
+
     public ws(File cache) {
         this.cache = cache;
         createWebSocketClient();
         connected = true;
+        decodedBytes = null;
     }
 
     public void toggle() {
@@ -57,6 +60,14 @@ public class ws {
         }
     }
 
+    public byte[] getAudio() {
+        if (decodedBytes == null) {
+            return null;
+        } else {
+            return decodedBytes;
+        }
+    }
+
     private void createWebSocketClient() {
         URI uri;
         try {
@@ -85,7 +96,7 @@ public class ws {
                 try {
                     String b64Data = s.split(">")[1];
                     //Log.i("WebSocket", b64Data);
-                    byte[] decodedBytes = Base64.getDecoder().decode(b64Data.getBytes());
+                    decodedBytes = Base64.getDecoder().decode(b64Data.getBytes());
                     //Log.i("WebSocket", Environment.getExternalStorageDirectory().toString());
                     File outputFile = File.createTempFile("file", ".webm", cache);
                     outputFile.deleteOnExit();
@@ -131,7 +142,7 @@ public class ws {
             @Override
             public void onCloseReceived() {
                 Log.i("WebSocket", "Closed ");
-                System.out.println("onCloseReceived");
+                // System.out.println("onCloseReceived");
                 connected = false;
             }
         };

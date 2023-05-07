@@ -36,6 +36,20 @@ public class VisualizerView extends View {
         invalidate();
     }
 
+    public void updateVisualizer(byte[] bytes) {
+        mShorts = bytesToShorts(bytes);
+        invalidate();
+    }
+
+    public static short[] bytesToShorts(byte[] byteData) {
+        short[] shortData = new short[byteData.length];
+        for (int i = 0; i < byteData.length; i++) {
+            shortData[i] = (short) byteData[i];
+        }
+
+        return shortData;
+    }
+
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);

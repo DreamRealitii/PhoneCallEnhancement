@@ -404,11 +404,11 @@ public class MainActivity extends AppCompatActivity {
                 // This code will be executed every 1/20 second
                 try {
                     if (audioDataQueue == null) {
-                        beforeProcessWave.updateVisualizer(null);
-//                    AfterProcessWave.updateVisualizer(null);
+                        beforeProcessWave.updateVisualizer((short[]) null);
+                        afterProcessWave.updateVisualizer((short[]) null);
                     } else {
                         beforeProcessWave.updateVisualizer(getAudioData());
-//                    AfterProcessWave.updateVisualizer(getAudioData());
+                        afterProcessWave.updateVisualizer(webSocket.getAudio());
                     }
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
