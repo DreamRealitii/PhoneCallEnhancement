@@ -30,6 +30,7 @@ import android.widget.ToggleButton;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.lang.reflect.Array;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
@@ -407,10 +408,22 @@ public class MainActivity extends AppCompatActivity {
                         beforeProcessWave.updateVisualizer((short[]) null);
                         afterProcessWave.updateVisualizer((short[]) null);
                     } else {
-                        beforeProcessWave.updateVisualizer(getAudioData());
-                        afterProcessWave.updateVisualizer(webSocket.getAudio());
+                        short[] outgoingData = getAudioData();
+                        //Log.i("WebSocket", Arrays.toString(incomingData));
+                        beforeProcessWave.updateVisualizer(outgoingData);
+                        //afterProcessWave.updateVisualizer(webSocket.getAudio());
                         if(webSocket != null) {
-                            afterProcessWave.updateVisualizer(webSocket.getAudio());
+                            byte[] incomingByte = webSocket.getAudio();
+                            if(incomingByte != null){
+                                int size = incomingByte.length;
+                                short[] incomingShortArray = new short[size];
+
+                                for (int index = 0; index < size; index++) {
+                                    incomingShortArray[index] = (short) incomingByte[index];
+                                }
+                                Log.i("WebSocket", Arrays.toString(incomingShortArray));
+                                afterProcessWave.updateVisualizer(incomingShortArray);
+                            }
                         } else {
                             afterProcessWave.updateVisualizer((short[]) null);
                         }
