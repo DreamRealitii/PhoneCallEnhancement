@@ -396,7 +396,7 @@ public class MainActivity extends AppCompatActivity {
         // wave form to a Canvas.
 
         Timer timer = new Timer();
-        long interval = 500; // 1/20 second in milliseconds
+        long interval = 5000; // 1/20 second in milliseconds
 
         timer.scheduleAtFixedRate(new TimerTask() {
             @Override
@@ -411,6 +411,12 @@ public class MainActivity extends AppCompatActivity {
                         if(webSocket != null) {
                             byte[] data = webSocket.getAudio();
                             if(data != null) {
+                                System.out.println(Arrays.toString(data));
+                                for(byte b : data) {
+                                    if(b != 0) {
+                                        System.out.println("HAVE D");
+                                    }
+                                }
                                 afterProcessWave.updateVisualizer(data);
                                 Log.i("WebSocket", "Updated visuallizer!");
 

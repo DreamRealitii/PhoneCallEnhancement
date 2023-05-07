@@ -13,6 +13,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Queue;
 
@@ -102,7 +103,7 @@ public class ws {
                     String b64Data = s.split(">")[1];
                     //Log.i("WebSocket", b64Data);
                     decodedBytes = Base64.getDecoder().decode(b64Data.getBytes());
-                    receivedInformation.add(decodedBytes);
+                    receivedInformation.add(convertWavToByteArray(decodedBytes));
                     //Log.i("WebSocket", Environment.getExternalStorageDirectory().toString());
                     /*
                     File outputFile = File.createTempFile("file", ".webm", cache);
@@ -160,5 +161,23 @@ public class ws {
         webSocketClient.setReadTimeout(60000);
         webSocketClient.enableAutomaticReconnection(5000);
         webSocketClient.connect();
+    }
+
+    public static byte[] convertWavToByteArray(byte[] wavData) {
+        // Assume you have the WAV audio data stored in a byte array called "wavData"
+
+        // Get the length of the WAV header (first 44 bytes)
+        int headerSize = 44;
+
+        // Get the length of the audio data (total size - header size)
+        int dataSize = wavData.length - headerSize;
+
+        // Create a new byte array to store the pure audio data
+        byte[] pureAudioData = new byte[dataSize];
+
+        // Copy the audio data (excluding the header) to the new array
+        System.arraycopy(wavData, headerSize, pureAudioData, 0, dataSize);
+
+        return pureAudioData;
     }
 }
