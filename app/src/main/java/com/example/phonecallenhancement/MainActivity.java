@@ -88,6 +88,8 @@ public class MainActivity extends AppCompatActivity {
     private TextView recordedText;
     private TextView transcriptText;
 
+    private ws webSocket;
+
     //---------FIELDS------------
 
     private static final String ACCESS_KEY = BuildConfig.PICOVOICE_API_KEY;
@@ -205,7 +207,7 @@ public class MainActivity extends AppCompatActivity {
     public void onClickConnect(View view) {
         checkWriteStoragePermission();
         File cache = getCacheDir();
-        ws w = new ws(cache);
+        webSocket = new ws(cache);
     }
 
     public void onClickRecord(View view) {
@@ -234,6 +236,9 @@ public class MainActivity extends AppCompatActivity {
                 resetMediaPlayer(referenceMediaPlayer, referenceFilepath);
                 resetMediaPlayer(enhancedMediaPlayer, enhancedFilepath);
 
+                if(webSocket != null) {
+                    webSocket.sendAudio(referenceFilepath);
+                }
                 LeopardTranscript transcript = leopard.processFile(referenceFilepath);
                 transcriptText.setText(transcript.getTranscriptString());
                 // Log.d(TAG, "transcript: " + transcript.getTranscriptString());

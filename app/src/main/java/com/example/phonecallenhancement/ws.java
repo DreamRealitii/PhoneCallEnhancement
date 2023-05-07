@@ -7,6 +7,7 @@ import android.util.Log;
 import android.widget.Toast;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -25,6 +26,27 @@ public class ws {
     //protected void onCreate(Bundle savedInstanceState) {
     //    createWebSocketClient();
     //}
+
+    public void sendAudio(String s) {
+            File file = new File(s);
+            StringBuilder encodedString = new StringBuilder();
+            try {
+                FileInputStream fileInputStream = new FileInputStream(file);
+
+                byte fileContent[] = new byte[3000];
+
+                while (fileInputStream.read(fileContent) >= 0) {
+                    encodedString.append(Base64.getEncoder().encodeToString(fileContent));
+                }
+                fileInputStream.close();
+                //webSocketClient.send(s.toString());
+                webSocketClient.send("MobileClient>" + encodedString.toString());
+            }catch(Exception e){
+                e.printStackTrace();
+            }
+            Log.i("WebSocket", "Done sending!");
+        //webSocketClient.send(s);
+    }
 
     private void createWebSocketClient() {
         URI uri;
@@ -62,7 +84,6 @@ public class ws {
                     FileOutputStream fileoutputstream = new FileOutputStream(outputFile);
                     fileoutputstream.write(decodedBytes);
                     fileoutputstream.close();
-                    Log.i("WebSocket", "Done");
 
                     MediaPlayer mp = new MediaPlayer();
                     try {
@@ -70,9 +91,10 @@ public class ws {
                         mp.prepare();
                         mp.start();
                     } catch (Exception e) {
+                        Log.i("WebSocket", "Err" + e.getMessage());
                         e.printStackTrace();
                     }
-
+                    Log.i("WebSocket", "Done");
                 } catch (Exception e) {
                     // TODO: handle exception
                     Log.e("Error", e.toString());
