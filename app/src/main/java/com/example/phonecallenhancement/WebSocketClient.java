@@ -1,13 +1,7 @@
 package com.example.phonecallenhancement;
 
-import android.media.AudioFormat;
-import android.media.AudioManager;
-import android.media.AudioTrack;
 import android.media.MediaPlayer;
-import android.os.Bundle;
-import android.os.Environment;
 import android.util.Log;
-import android.widget.Toast;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -15,22 +9,20 @@ import java.io.FileOutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Queue;
 
-import tech.gusavila92.websocketclient.WebSocketClient;
-
-public class ws {
-    private WebSocketClient webSocketClient;
+public class WebSocketClient {
+    private static final String TAG = "WebSocket";
+    private tech.gusavila92.websocketclient.WebSocketClient webSocketClient;
     private File cache;
     private Boolean connected;
     private byte[] decodedBytes;
 
     private Queue<byte[]> receivedInformation;
 
-    public ws(File cache) {
+    public WebSocketClient(File cache) {
         this.cache = cache;
         createWebSocketClient();
         connected = true;
@@ -41,9 +33,6 @@ public class ws {
     public void toggle() {
         connected = !connected;
     }
-    //protected void onCreate(Bundle savedInstanceState) {
-    //    createWebSocketClient();
-    //}
 
     public void sendAudio(String s) {
         if(!connected) {
@@ -88,27 +77,26 @@ public class ws {
             return;
         }
 
-        webSocketClient = new WebSocketClient(uri) {
+        webSocketClient = new tech.gusavila92.websocketclient.WebSocketClient(uri) {
             @Override
             public void onOpen() {
-                Log.i("WebSocket", "Session is starting");
+                Log.d(TAG, "Session is starting");
                 webSocketClient.send("MobileClient>Hello World!");
             }
 
             @Override
             public void onTextReceived(String s) {
-                Log.i("WebSocket", "Message received" + s);
-                //final String message = s;
-                //Toast.makeText(getActivity(), "This is my Toast message!",
-                //        Toast.LENGTH_LONG).show();
+                Log.d(TAG, "Message received " + s);
 
                 try {
                     String b64Data = s.split(">")[1];
                     //Log.i("WebSocket", b64Data);
                     decodedBytes = Base64.getDecoder().decode(b64Data.getBytes());
-                    receivedInformation.add(convertWavToByteArray(decodedBytes));
-                    //Log.i("WebSocket", Environment.getExternalStorageDirectory().toString());
-                    /*
+                    byte[] pureAudioData = convertWavToByteArray(decodedBytes);
+                    Log.d(TAG, "pureAudioData: " + Arrays.toString(pureAudioData));
+
+                    receivedInformation.add(pureAudioData);
+
                     File outputFile = File.createTempFile("file", ".webm", cache);
                     outputFile.deleteOnExit();
                     Log.i("WebSocket",outputFile.toString());
@@ -122,16 +110,13 @@ public class ws {
                         mp.prepare();
                         mp.start();
                     } catch (Exception e) {
-                        Log.i("WebSocket", "Err" + e.getMessage());
                         e.printStackTrace();
                     }
 
-                     */
                     Log.i("WebSocket", "Done");
                 } catch (Exception e) {
                     // TODO: handle exception
-                    Log.e("Error", e.toString());
-
+                    e.printStackTrace();
                 }
             }
 
@@ -149,13 +134,11 @@ public class ws {
 
             @Override
             public void onException(Exception e) {
-                System.out.println(e.getMessage());
             }
 
             @Override
             public void onCloseReceived() {
-                Log.i("WebSocket", "Closed ");
-                // System.out.println("onCloseReceived");
+                Log.d(TAG, "Closed ");
                 connected = false;
             }
         };

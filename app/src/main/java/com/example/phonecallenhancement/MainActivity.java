@@ -22,7 +22,6 @@ import android.os.Process;
 import android.util.Base64;
 import android.util.Log;
 import android.view.View;
-import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
@@ -81,14 +80,14 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG = "Debugging";
 
     // UI COMPONENTS
-    private ToggleButton recordButton;
+    private ToggleButton recordButton, connectButton;
     private ActionBar actionBar;
     private AudioRecord audioRecord;
     private VisualizerView beforeProcessWave, afterProcessWave;
     private TextView recordedText;
     private TextView transcriptText;
 
-    private ws webSocket;
+    private WebSocketClient webSocket;
 
     //---------FIELDS------------
 
@@ -114,13 +113,16 @@ public class MainActivity extends AppCompatActivity {
     private MediaPlayer enhancedMediaPlayer;
     private MicrophoneReader microphoneReader;
     private final AtomicBoolean stop = new AtomicBoolean(false);
+    private File cache;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        cache = getCacheDir();
         recordButton = this.findViewById(R.id.recordButton);
+        connectButton = this.findViewById(R.id.connectButton);
         beforeProcessWave = this.findViewById(R.id.beforeWave);
         afterProcessWave = this.findViewById(R.id.afterWave);
         recordedText = this.findViewById(R.id.recordedText);
@@ -154,6 +156,7 @@ public class MainActivity extends AppCompatActivity {
         setVolumeControlStream(AudioManager.STREAM_MUSIC);
         checkRecordAudioPermission();
         checkInternetPermission();
+        setupVisualizerFxAndUI();
     }
 
     @Override
@@ -206,11 +209,17 @@ public class MainActivity extends AppCompatActivity {
     //---------LISTENERS--------------
     public void onClickConnect(View view) {
         checkWriteStoragePermission();
-        File cache = getCacheDir();
+
         if(webSocket == null) {
-            webSocket = new ws(cache);
+            webSocket = new WebSocketClient(cache);
         }
-        webSocket.toggle();
+
+        if (connectButton.isChecked()) {
+            webSocket.toggle();
+        } else {
+            webSocket.toggle();
+        }
+
     }
 
     public void onClickRecord(View view) {
@@ -226,7 +235,6 @@ public class MainActivity extends AppCompatActivity {
                 if (hasRecordPermission()) {
                     stop.set(false);
                     startRecording();
-                    setupVisualizerFxAndUI();
 
                     microphoneReader.start();
                 } else {
@@ -405,17 +413,23 @@ public class MainActivity extends AppCompatActivity {
                 try {
                     if (audioDataQueue == null) {
                         beforeProcessWave.updateVisualizer((short[]) null);
-                        afterProcessWave.updateVisualizer((short[]) null);
                     } else {
-                        beforeProcessWave.updateVisualizer(getAudioData());
-                        afterProcessWave.updateVisualizer(webSocket.getAudio());
-                        if(webSocket != null) {
-                            afterProcessWave.updateVisualizer(webSocket.getAudio());
-                        } else {
-                            afterProcessWave.updateVisualizer((short[]) null);
+                        if (!stop.get()) {
+                            beforeProcessWave.updateVisualizer(getAudioData());
                         }
                     }
-                } catch (InterruptedException e) {
+                    if (webSocket == null) {
+                        afterProcessWave.updateVisualizer((short[]) null);
+                    } else {
+//                        if(stop.get()) {
+//                            afterProcessWave.updateVisualizer(webSocket.getAudio());
+//                        }
+                        byte[] data = webSocket.getAudio();
+                        Log.d(TAG, "websocket data: " + Arrays.toString(data));
+                        afterProcessWave.updateVisualizer(data);
+                    }
+
+                } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
             }

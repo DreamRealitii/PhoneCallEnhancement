@@ -32,11 +32,17 @@ public class VisualizerView extends View {
     }
 
     public void updateVisualizer(short[] shorts) {
+        if (shorts == null) {
+            return;
+        }
         mShorts = shorts;
         invalidate();
     }
 
     public void updateVisualizer(byte[] bytes) {
+        if (bytes == null) {
+            return;
+        }
         mShorts = bytesToShorts(bytes);
         invalidate();
     }
@@ -46,8 +52,14 @@ public class VisualizerView extends View {
             return null;
         }
         short[] shortData = new short[byteData.length];
+
+        byte min = Byte.MIN_VALUE;
+        byte max = Byte.MAX_VALUE;
+        short newMin = Short.MIN_VALUE;
+        short newMax = Short.MAX_VALUE;
+
         for (int i = 0; i < byteData.length; i++) {
-            shortData[i] = (short) byteData[i];
+            shortData[i] = (short) ((byteData[i] - min) * (newMax - newMin) / (max - min) + newMin);
         }
 
         return shortData;
