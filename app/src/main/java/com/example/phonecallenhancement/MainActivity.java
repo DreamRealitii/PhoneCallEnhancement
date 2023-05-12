@@ -59,6 +59,7 @@ import ai.picovoice.leopard.LeopardActivationThrottledException;
 import ai.picovoice.leopard.LeopardException;
 import ai.picovoice.leopard.LeopardInvalidArgumentException;
 import ai.picovoice.leopard.LeopardTranscript;
+import ai.picovoice.cheetah.*;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -100,8 +101,11 @@ public class MainActivity extends AppCompatActivity {
     // nb2: Spent 15+ hrs trying to make google speech-to-text work but it's impossible to do...
 
     public Koala koala;
-    private static final String MODEL_FILE = "leopard_params.pv";
+    private static final String LEOPARD_MODEL_FILE = "leopard_params.pv";
+    private static final String CHEETAH_MODEL_FILE = "cheetah_params.pv";
+
     private Leopard leopard;
+    private Cheetah cheetah;
     private int bufferSize;
     private BlockingQueue<short[]> audioDataQueue;
     public short[] getAudioData() throws InterruptedException {
@@ -138,6 +142,11 @@ public class MainActivity extends AppCompatActivity {
         Log.d(TAG,"koala rate: " + koala.getSampleRate()); //16000 hz
         initLeopard();
         Log.d(TAG, "Leopard version: " + leopard.getVersion());
+        initCheetah();
+        Log.d(TAG, "Cheetah version: " + cheetah.getVersion());
+        Log.d(TAG,"Cheetah rate: " + cheetah.getSampleRate()); //16000 hz
+        Log.d(TAG,"Cheetah buffer: " + cheetah.getFrameLength());  // 512
+
 
         microphoneReader = new MicrophoneReader();
 
@@ -173,6 +182,7 @@ public class MainActivity extends AppCompatActivity {
         }
         koala.delete();
         leopard.delete();
+        cheetah.delete();
     }
 
     @Override
@@ -250,8 +260,8 @@ public class MainActivity extends AppCompatActivity {
                 if(webSocket != null) {
                     webSocket.sendAudio(referenceFilepath);
                 }
-                LeopardTranscript transcript = leopard.processFile(referenceFilepath);
-                transcriptText.setText(transcript.getTranscriptString());
+                 LeopardTranscript transcript = leopard.processFile(referenceFilepath);
+                 transcriptText.setText(transcript.getTranscriptString());
                 // Log.d(TAG, "transcript: " + transcript.getTranscriptString());
 
                 // play on speaker
@@ -259,7 +269,7 @@ public class MainActivity extends AppCompatActivity {
                 referenceMediaPlayer.start();
                 enhancedMediaPlayer.start();
             }
-        } catch (InterruptedException | IOException | LeopardException e) {
+        } catch (Exception e) {
             e.printStackTrace();
             // Toast.makeText(this, "Audio stop command interrupted\n", Toast.LENGTH_SHORT).show();
         }
@@ -315,7 +325,7 @@ public class MainActivity extends AppCompatActivity {
         try {
             leopard = new Leopard.Builder()
                     .setAccessKey(ACCESS_KEY)
-                    .setModelPath(MODEL_FILE)
+                    .setModelPath(LEOPARD_MODEL_FILE)
                     .setEnableAutomaticPunctuation(true)
                     .build(getApplicationContext());
         } catch (LeopardInvalidArgumentException e) {
@@ -331,6 +341,45 @@ public class MainActivity extends AppCompatActivity {
         } catch (LeopardException e) {
             onKoalaInitError("Failed to initialize Leopard " + e.getMessage());
         }
+    }
+
+    private void initCheetah() {
+        try {
+            cheetah = new Cheetah.Builder()
+                    .setAccessKey(ACCESS_KEY)
+                    .setModelPath(CHEETAH_MODEL_FILE)
+                    .setEnableAutomaticPunctuation(true)
+                    .build(getApplicationContext());
+        } catch (CheetahInvalidArgumentException e) {
+            onKoalaInitError(String.format("%s\nEnsure your AccessKey '%s' is valid", e.getMessage(), ACCESS_KEY));
+        } catch (CheetahActivationException e) {
+            onKoalaInitError("AccessKey activation error");
+        } catch (CheetahActivationLimitException e) {
+            onKoalaInitError("AccessKey reached its device limit");
+        } catch (CheetahActivationRefusedException e) {
+            onKoalaInitError("AccessKey refused");
+        } catch (CheetahActivationThrottledException e) {
+            onKoalaInitError("AccessKey has been throttled");
+        } catch (CheetahException e) {
+            onKoalaInitError("Failed to initialize Cheetah " + e.getMessage());
+        }
+    }
+
+    private void updateTranscriptView(String transcript) {
+        Log.d(TAG, transcript);
+        runOnUiThread(() -> {
+            if (transcript.length() != 0) {
+                transcriptText.append(transcript);
+
+                final int scrollAmount = transcriptText.getLayout().getLineTop(transcriptText.getLineCount()) -
+                        transcriptText.getHeight() +
+                        transcriptText.getLineHeight();
+
+                if (scrollAmount > 0) {
+                    transcriptText.scrollTo(0, scrollAmount);
+                }
+            }
+        });
     }
 
     private boolean hasRecordPermission() {
@@ -501,7 +550,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @SuppressLint({"MissingPermission", "SetTextI18n", "DefaultLocale"})
-        private void read() throws KoalaException {
+        private void read() throws KoalaException, CheetahException {
             final int minBufferSize = AudioRecord.getMinBufferSize(
                     koala.getSampleRate(),
                     AudioFormat.CHANNEL_IN_MONO,
@@ -536,6 +585,14 @@ public class MainActivity extends AppCompatActivity {
                             writeFrame(enhancedFile, frameBufferEnhanced);
                             enhancedSamplesWritten += frameBufferEnhanced.length;
                         }
+
+//                        CheetahTranscript transcriptObj = cheetah.process(frameBuffer);
+//                        updateTranscriptView(transcriptObj.getTranscript());
+//
+//                        if (transcriptObj.getIsEndpoint()) {
+//                            transcriptObj = cheetah.flush();
+//                            updateTranscriptView(transcriptObj.getTranscript() + " ");
+//                        }
                     }
 
                     if ((totalSamplesWritten / koala.getFrameLength()) % 10 == 0) {
@@ -545,6 +602,9 @@ public class MainActivity extends AppCompatActivity {
                         });
                     }
                 }
+
+//                final CheetahTranscript transcriptObj = cheetah.flush();
+//                updateTranscriptView(transcriptObj.getTranscript());
 
                 audioRecord.stop();
 
