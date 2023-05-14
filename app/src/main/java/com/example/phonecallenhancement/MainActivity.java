@@ -425,8 +425,10 @@ public class MainActivity extends AppCompatActivity {
 //                            afterProcessWave.updateVisualizer(webSocket.getAudio());
 //                        }
                         byte[] data = webSocket.getAudio();
-                        Log.d(TAG, "websocket data: " + Arrays.toString(data));
-                        afterProcessWave.updateVisualizer(data);
+                        if(data!= null) {
+                            Log.d(TAG, "websocket data: " + Arrays.toString(data));
+                            afterProcessWave.updateVisualizer(data);
+                        }
                     }
 
                 } catch (Exception e) {
