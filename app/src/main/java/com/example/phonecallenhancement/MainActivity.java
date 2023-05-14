@@ -640,6 +640,7 @@ import android.media.MediaRecorder;
 import android.os.Bundle;
 import android.os.Process;
 import android.text.method.ScrollingMovementMethod;
+import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.ToggleButton;
@@ -850,7 +851,9 @@ public class MainActivity extends AppCompatActivity {
                     if (audioRecord.read(buffer, 0, buffer.length) == buffer.length) {
                         CheetahTranscript transcriptObj = cheetah.process(buffer);
                         updateTranscriptView(transcriptObj.getTranscript());
-
+                        if(!transcriptObj.getTranscript().equals("")) {
+                            Log.i("Che", "TS: " + transcriptObj.getTranscript());
+                        }
                         if (transcriptObj.getIsEndpoint()) {
                             transcriptObj = cheetah.flush();
                             updateTranscriptView(transcriptObj.getTranscript() + " ");
