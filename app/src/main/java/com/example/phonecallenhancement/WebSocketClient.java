@@ -2,6 +2,7 @@ package com.example.phonecallenhancement;
 
 import android.media.MediaPlayer;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.google.android.gms.tasks.OnCompleteListener;
 
@@ -92,7 +93,7 @@ public class WebSocketClient {
             @Override
             public void onTextReceived(String s) {
                 Log.d(TAG, "Message received " + s);
-
+                //Toast.makeText(this, "Audio stop command interrupted\n", Toast.LENGTH_SHORT).show();
                 try {
                     String b64Data = s.split(">")[1];
                     //Log.i("WebSocket", b64Data);

@@ -44,6 +44,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import Sound.VolumeControl;
+import ai.picovoice.cheetah.Cheetah;
 import ai.picovoice.koala.Koala;
 import ai.picovoice.koala.KoalaActivationException;
 import ai.picovoice.koala.KoalaActivationLimitException;
@@ -63,9 +64,9 @@ import ai.picovoice.leopard.LeopardTranscript;
 public class MainActivity extends AppCompatActivity {
 
     // TODO (Walkie-Talkie protocol):
-    //  1) Get recording audio file from mic
-    //  2) send it over websocket
-    //  3) receive back reply and decode the data of Stringbase64Data
+    //  1) Get recording audio file from mic DONE
+    //  2) send it over websocket DONE
+    //  3) receive back reply and decode the data of Stringbase64Data DONE?
     //  4) Got audio file, "enhance" it + transcript
     //  5) Repeat step 1
 
@@ -100,6 +101,7 @@ public class MainActivity extends AppCompatActivity {
     // nb2: Spent 15+ hrs trying to make google speech-to-text work but it's impossible to do...
 
     public Koala koala;
+    public Cheetah cheetah;
     private static final String MODEL_FILE = "leopard_params.pv";
     private Leopard leopard;
     private int bufferSize;
@@ -138,6 +140,8 @@ public class MainActivity extends AppCompatActivity {
         Log.d(TAG,"koala rate: " + koala.getSampleRate()); //16000 hz
         initLeopard();
         Log.d(TAG, "Leopard version: " + leopard.getVersion());
+
+
 
         microphoneReader = new MicrophoneReader();
 
@@ -208,6 +212,7 @@ public class MainActivity extends AppCompatActivity {
 
     //---------LISTENERS--------------
     public void onClickConnect(View view) {
+        Toast.makeText(this, "Connecting to websocket", Toast.LENGTH_SHORT).show();
         checkWriteStoragePermission();
 
         if(webSocket == null) {
@@ -220,6 +225,10 @@ public class MainActivity extends AppCompatActivity {
             webSocket.toggle();
         }
 
+    }
+
+    public void onClickChangeSTT(View view) {
+        Toast.makeText(this, "Switched to XXX", Toast.LENGTH_SHORT).show();
     }
 
     public void onClickRecord(View view) {
