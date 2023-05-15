@@ -280,7 +280,8 @@ public class MainActivity extends AppCompatActivity {
                     transcriptText.setText(transcript.getTranscriptString());
                     // Log.d(TAG, "transcript: " + transcript.getTranscriptString());
                 }else{
-                    Toast.makeText(this, "Not available yet", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "Not available yet, I have no idea about how to make a file to a PCM, so this function is still WIP", Toast.LENGTH_SHORT).show();
+                    // WIP? how we make that file to a PCM short[]
                     //CheetahTranscript transcript = cheetah.process(referenceFilepath);
                     //transcriptText.setText(transcript.getTranscript());
                 }

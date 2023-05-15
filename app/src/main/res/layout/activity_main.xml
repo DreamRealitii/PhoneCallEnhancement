@@ -179,8 +179,8 @@
         android:layout_marginEnd="44dp"
         android:onClick="onClickChangeSTT"
         android:text="ModelButton"
-        android:textOff="Model1"
-        android:textOn="Model2"
+        android:textOff="Leopard"
+        android:textOn="Cheetah"
         app:layout_constraintEnd_toStartOf="@+id/recordButton"
         app:layout_constraintTop_toBottomOf="@+id/transcriptLayout" />
 
