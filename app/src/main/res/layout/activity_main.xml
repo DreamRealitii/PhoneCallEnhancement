@@ -80,27 +80,14 @@
     </LinearLayout>
 
     <ToggleButton
-        android:id="@+id/recordButton2"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:onClick="onClickRecord"
-        android:textOff="Send"
-        android:textOn="Stop"
-        app:layout_constraintBottom_toTopOf="@+id/guiddelineBottom"
-        app:layout_constraintEnd_toStartOf="@+id/guidelineEnd"
-        app:layout_constraintStart_toStartOf="@+id/guidelineStart"
-        app:layout_constraintTop_toBottomOf="@id/guiddelineMid2" />
-
-    <ToggleButton
         android:id="@+id/recordButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:onClick="onClickChangeSTT"
-        android:textOff="Switch Model"
-        android:textOn="Switch Model"
+        android:onClick="onClickRecord"
+        android:textOff="Record"
+        android:textOn="Stop"
         app:layout_constraintBottom_toTopOf="@+id/guiddelineBottom"
         app:layout_constraintEnd_toStartOf="@+id/guidelineEnd"
-        app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="@+id/guidelineStart"
         app:layout_constraintTop_toBottomOf="@id/guiddelineMid2" />
 
@@ -121,11 +108,11 @@
         android:id="@+id/recordedText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
         android:text="Recorded"
+        app:layout_constraintBottom_toTopOf="@+id/recordButton"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.498"
-        app:layout_constraintStart_toStartOf="parent"
-        tools:layout_editor_absoluteY="563dp" />
+        app:layout_constraintStart_toStartOf="parent" />
 
     <TextView
         android:id="@+id/errorMessage"
@@ -139,7 +126,8 @@
         android:visibility="invisible"
         app:layout_constraintBottom_toTopOf="@+id/guiddelineBottom"
         app:layout_constraintEnd_toStartOf="@+id/guidelineEnd"
-        app:layout_constraintStart_toStartOf="@+id/guidelineStart" />
+        app:layout_constraintStart_toStartOf="@+id/guidelineStart"
+        app:layout_constraintTop_toBottomOf="@+id/recordButton" />
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/guidelineStart"
@@ -182,6 +170,19 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         app:layout_constraintGuide_percent="0.05" />
+
+    <ToggleButton
+        android:id="@+id/modelButton"
+        android:layout_width="wrap_content"
+        android:layout_height="48dp"
+        android:layout_marginTop="52dp"
+        android:layout_marginEnd="44dp"
+        android:onClick="onClickChangeSTT"
+        android:text="ModelButton"
+        android:textOff="Model1"
+        android:textOn="Model2"
+        app:layout_constraintEnd_toStartOf="@+id/recordButton"
+        app:layout_constraintTop_toBottomOf="@+id/transcriptLayout" />
 
     <!--    <LinearLayout-->
     <!--        android:id="@+id/buttons"-->

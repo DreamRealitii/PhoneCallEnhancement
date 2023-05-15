@@ -45,6 +45,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import Sound.VolumeControl;
 import ai.picovoice.cheetah.Cheetah;
+import ai.picovoice.cheetah.CheetahActivationException;
+import ai.picovoice.cheetah.CheetahActivationLimitException;
+import ai.picovoice.cheetah.CheetahActivationRefusedException;
+import ai.picovoice.cheetah.CheetahActivationThrottledException;
+import ai.picovoice.cheetah.CheetahException;
+import ai.picovoice.cheetah.CheetahInvalidArgumentException;
+import ai.picovoice.cheetah.CheetahTranscript;
 import ai.picovoice.koala.Koala;
 import ai.picovoice.koala.KoalaActivationException;
 import ai.picovoice.koala.KoalaActivationLimitException;
@@ -81,7 +88,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG = "Debugging";
 
     // UI COMPONENTS
-    private ToggleButton recordButton, connectButton;
+    private ToggleButton recordButton, connectButton, switchModelbtn;
     private ActionBar actionBar;
     private AudioRecord audioRecord;
     private VisualizerView beforeProcessWave, afterProcessWave;
@@ -93,6 +100,7 @@ public class MainActivity extends AppCompatActivity {
     //---------FIELDS------------
 
     private static final String ACCESS_KEY = BuildConfig.PICOVOICE_API_KEY;
+    private static final String CHEETAH_MODEL_FILE = "cheetah_params.pv";
 
     // koala API that is used for speech enhancement https://picovoice.ai/docs/koala/
     // cheeatah API for real-time transcription https://picovoice.ai/platform/cheetah/
@@ -101,7 +109,7 @@ public class MainActivity extends AppCompatActivity {
     // nb2: Spent 15+ hrs trying to make google speech-to-text work but it's impossible to do...
 
     public Koala koala;
-    public Cheetah cheetah;
+    private Cheetah cheetah;
     private static final String MODEL_FILE = "leopard_params.pv";
     private Leopard leopard;
     private int bufferSize;
@@ -129,6 +137,7 @@ public class MainActivity extends AppCompatActivity {
         afterProcessWave = this.findViewById(R.id.afterWave);
         recordedText = this.findViewById(R.id.recordedText);
         transcriptText = this.findViewById(R.id.transcriptContentTv);
+        switchModelbtn = this.findViewById(R.id.modelButton);
 
         actionBar = getSupportActionBar();
         actionBar.setTitle("Speech Enhancement");
@@ -140,7 +149,8 @@ public class MainActivity extends AppCompatActivity {
         Log.d(TAG,"koala rate: " + koala.getSampleRate()); //16000 hz
         initLeopard();
         Log.d(TAG, "Leopard version: " + leopard.getVersion());
-
+        initCheetah();
+        Log.d(TAG, "Cheetah version: " + cheetah.getVersion());
 
 
         microphoneReader = new MicrophoneReader();
@@ -177,6 +187,7 @@ public class MainActivity extends AppCompatActivity {
         }
         koala.delete();
         leopard.delete();
+        cheetah.delete();
     }
 
     @Override
@@ -228,7 +239,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void onClickChangeSTT(View view) {
-        Toast.makeText(this, "Switched to XXX", Toast.LENGTH_SHORT).show();
+        if(!switchModelbtn.isChecked()) {
+            Toast.makeText(this, "Switched to Leopard", Toast.LENGTH_SHORT).show();
+        }else{
+            Toast.makeText(this, "Switched to Cheetah", Toast.LENGTH_SHORT).show();
+        }
     }
 
     public void onClickRecord(View view) {
@@ -259,9 +274,16 @@ public class MainActivity extends AppCompatActivity {
                 if(webSocket != null) {
                     webSocket.sendAudio(referenceFilepath);
                 }
-                LeopardTranscript transcript = leopard.processFile(referenceFilepath);
-                transcriptText.setText(transcript.getTranscriptString());
-                // Log.d(TAG, "transcript: " + transcript.getTranscriptString());
+
+                if (!switchModelbtn.isChecked()) {
+                    LeopardTranscript transcript = leopard.processFile(referenceFilepath);
+                    transcriptText.setText(transcript.getTranscriptString());
+                    // Log.d(TAG, "transcript: " + transcript.getTranscriptString());
+                }else{
+                    Toast.makeText(this, "Not available yet", Toast.LENGTH_SHORT).show();
+                    //CheetahTranscript transcript = cheetah.process(referenceFilepath);
+                    //transcriptText.setText(transcript.getTranscript());
+                }
 
                 // play on speaker
                 // and disable looping playback
@@ -339,6 +361,28 @@ public class MainActivity extends AppCompatActivity {
             onKoalaInitError("AccessKey has been throttled");
         } catch (LeopardException e) {
             onKoalaInitError("Failed to initialize Leopard " + e.getMessage());
+        }
+    }
+
+    private void initCheetah() {
+        try {
+            cheetah = new Cheetah.Builder()
+                    .setAccessKey(ACCESS_KEY)
+                    .setModelPath(CHEETAH_MODEL_FILE)
+                    .setEnableAutomaticPunctuation(true)
+                    .build(getApplicationContext());
+        } catch (CheetahInvalidArgumentException e) {
+            onKoalaInitError(String.format("%s\nEnsure your AccessKey '%s' is valid", e.getMessage(), ACCESS_KEY));
+        } catch (CheetahActivationException e) {
+            onKoalaInitError("AccessKey activation error");
+        } catch (CheetahActivationLimitException e) {
+            onKoalaInitError("AccessKey reached its device limit");
+        } catch (CheetahActivationRefusedException e) {
+            onKoalaInitError("AccessKey refused");
+        } catch (CheetahActivationThrottledException e) {
+            onKoalaInitError("AccessKey has been throttled");
+        } catch (CheetahException e) {
+            onKoalaInitError("Failed to initialize Cheetah " + e.getMessage());
         }
     }
 
