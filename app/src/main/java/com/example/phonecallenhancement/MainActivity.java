@@ -29,6 +29,7 @@ import android.widget.ToggleButton;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.io.Reader;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
@@ -61,12 +62,13 @@ import ai.picovoice.leopard.LeopardInvalidArgumentException;
 import ai.picovoice.leopard.LeopardTranscript;
 import ai.picovoice.cheetah.*;
 
+
 public class MainActivity extends AppCompatActivity {
 
     // TODO (Walkie-Talkie protocol):
-    //  1) Get recording audio file from mic
-    //  2) send it over websocket
-    //  3) receive back reply and decode the data of Stringbase64Data
+    //  1) Get recording audio file from mic DONE
+    //  2) send it over websocket DONE
+    //  3) receive back reply and decode the data of Stringbase64Data DONE?
     //  4) Got audio file, "enhance" it + transcript
     //  5) Repeat step 1
 
@@ -81,7 +83,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG = "Debugging";
 
     // UI COMPONENTS
-    private ToggleButton recordButton, connectButton;
+    private ToggleButton recordButton, connectButton, switchModelbtn;
     private ActionBar actionBar;
     private AudioRecord audioRecord;
     private VisualizerView beforeProcessWave, afterProcessWave;
@@ -131,6 +133,7 @@ public class MainActivity extends AppCompatActivity {
         afterProcessWave = this.findViewById(R.id.afterWave);
         recordedText = this.findViewById(R.id.recordedText);
         transcriptText = this.findViewById(R.id.transcriptContentTv);
+        switchModelbtn = this.findViewById(R.id.modelButton);
 
         actionBar = getSupportActionBar();
         actionBar.setTitle("Speech Enhancement");
@@ -166,6 +169,13 @@ public class MainActivity extends AppCompatActivity {
         checkRecordAudioPermission();
         checkInternetPermission();
         setupVisualizerFxAndUI();
+
+        Toast.makeText(this, "Connecting to websocket", Toast.LENGTH_SHORT).show();
+        checkWriteStoragePermission();
+
+        if(webSocket == null) {
+            webSocket = new WebSocketClient(cache);
+        }
     }
 
     @Override
@@ -218,6 +228,7 @@ public class MainActivity extends AppCompatActivity {
 
     //---------LISTENERS--------------
     public void onClickConnect(View view) {
+        Toast.makeText(this, "Connecting to websocket", Toast.LENGTH_SHORT).show();
         checkWriteStoragePermission();
 
         if(webSocket == null) {
@@ -230,6 +241,14 @@ public class MainActivity extends AppCompatActivity {
             webSocket.toggle();
         }
 
+    }
+
+    public void onClickChangeSTT(View view) {
+        if(!switchModelbtn.isChecked()) {
+            Toast.makeText(this, "Switched to Leopard", Toast.LENGTH_SHORT).show();
+        }else{
+            Toast.makeText(this, "Switched to Cheetah", Toast.LENGTH_SHORT).show();
+        }
     }
 
     public void onClickRecord(View view) {
@@ -260,6 +279,18 @@ public class MainActivity extends AppCompatActivity {
                 if(webSocket != null) {
                     webSocket.sendAudio(referenceFilepath);
                 }
+
+                if (!switchModelbtn.isChecked()) {
+                    LeopardTranscript transcript = leopard.processFile(referenceFilepath);
+                    transcriptText.setText(transcript.getTranscriptString());
+                    // Log.d(TAG, "transcript: " + transcript.getTranscriptString());
+                }else{
+                    Toast.makeText(this, "Not available yet, I have no idea about how to make a file to a PCM, so this function is still WIP", Toast.LENGTH_SHORT).show();
+                    // WIP? how we make that file to a PCM short[]
+                    //cheetah.
+                    //CheetahTranscript transcript = cheetah.process(referenceFilepath);
+                    //transcriptText.setText(transcript.getTranscript());
+                }
                  LeopardTranscript transcript = leopard.processFile(referenceFilepath);
                  transcriptText.setText(transcript.getTranscriptString());
                 // Log.d(TAG, "transcript: " + transcript.getTranscriptString());
@@ -273,6 +304,10 @@ public class MainActivity extends AppCompatActivity {
             e.printStackTrace();
             // Toast.makeText(this, "Audio stop command interrupted\n", Toast.LENGTH_SHORT).show();
         }
+    }
+
+    public void onClickVolumeButton(View view) {
+        VolumeControl.ToggleEnabled();
     }
 
     private void onKoalaInitError(String error) {
@@ -474,8 +509,10 @@ public class MainActivity extends AppCompatActivity {
 //                            afterProcessWave.updateVisualizer(webSocket.getAudio());
 //                        }
                         byte[] data = webSocket.getAudio();
-                        Log.d(TAG, "websocket data: " + Arrays.toString(data));
-                        afterProcessWave.updateVisualizer(data);
+                        if(data!= null) {
+                            Log.d(TAG, "websocket data: " + Arrays.toString(data));
+                            afterProcessWave.updateVisualizer(data);
+                        }
                     }
 
                 } catch (Exception e) {
@@ -663,6 +700,5 @@ public class MainActivity extends AppCompatActivity {
             outputFile.write(byteBuf.array());
         }
     }
-
 
 }
