@@ -143,12 +143,14 @@ public class MainActivity extends AppCompatActivity {
 
         initKoala();
         Log.d(TAG,"koala rate: " + koala.getSampleRate()); //16000 hz
+        Log.d(TAG,"Koala buffer: " + koala.getFrameLength());  // 512
         initLeopard();
         Log.d(TAG, "Leopard version: " + leopard.getVersion());
         initCheetah();
         Log.d(TAG, "Cheetah version: " + cheetah.getVersion());
         Log.d(TAG,"Cheetah rate: " + cheetah.getSampleRate()); //16000 hz
         Log.d(TAG,"Cheetah buffer: " + cheetah.getFrameLength());  // 512
+
 
 
         microphoneReader = new MicrophoneReader();
@@ -595,6 +597,7 @@ public class MainActivity extends AppCompatActivity {
             AudioRecord audioRecord = null;
 
             short[] frameBuffer = new short[koala.getFrameLength()];
+            short[] cheetahFrameBuffer = new short[cheetah.getFrameLength()];
 
             try {
                 audioRecord = new AudioRecord(
@@ -608,13 +611,13 @@ public class MainActivity extends AppCompatActivity {
                 final int koalaDelay = koala.getDelaySample();
 
                 totalSamplesWritten = 0;
+                boolean writeCheetah = false;
                 int enhancedSamplesWritten = 0;
+
                 while (!stop.get()) {
-                    updateTranscriptView("Y");
                     if (audioRecord.read(frameBuffer, 0, frameBuffer.length) == frameBuffer.length) {
                         short[] frameBufferEnhanced = koala.process(frameBuffer);
                         VolumeControl.NormalizeVolume(frameBufferEnhanced);
-                        updateTranscriptView("O");
                         writeFrame(referenceFile, frameBuffer);
                         totalSamplesWritten += frameBuffer.length;
                         if (totalSamplesWritten >= koalaDelay) {
@@ -622,8 +625,14 @@ public class MainActivity extends AppCompatActivity {
                             enhancedSamplesWritten += frameBufferEnhanced.length;
                         }
 
+                        // Copy the buffered contents to the cheetah buffer
                         if (switchModelbtn.isChecked()) {
-                            CheetahTranscript transcriptObj = cheetah.process(frameBuffer);
+                            int offset = writeCheetah ? frameBufferEnhanced.length - 1 : 0;
+                            System.arraycopy(frameBufferEnhanced, 0, cheetahFrameBuffer, offset, frameBufferEnhanced.length);
+                        }
+
+                        if (switchModelbtn.isChecked() && writeCheetah) {
+                            CheetahTranscript transcriptObj = cheetah.process(cheetahFrameBuffer);
                             updateTranscriptView(transcriptObj.getTranscript());
                             Log.d("Cheetah", transcriptObj.getTranscript());
 
@@ -632,6 +641,7 @@ public class MainActivity extends AppCompatActivity {
                                 updateTranscriptView(transcriptObj.getTranscript() + " ");
                             }
                         }
+                        writeCheetah = !writeCheetah;
                     }
 
                     if ((totalSamplesWritten / koala.getFrameLength()) % 10 == 0) {
