@@ -284,16 +284,14 @@ public class MainActivity extends AppCompatActivity {
                     LeopardTranscript transcript = leopard.processFile(referenceFilepath);
                     transcriptText.setText(transcript.getTranscriptString());
                     // Log.d(TAG, "transcript: " + transcript.getTranscriptString());
-                }else{
-                    Toast.makeText(this, "Not available yet, I have no idea about how to make a file to a PCM, so this function is still WIP", Toast.LENGTH_SHORT).show();
-                    // WIP? how we make that file to a PCM short[]
-                    //cheetah.
-                    //CheetahTranscript transcript = cheetah.process(referenceFilepath);
-                    //transcriptText.setText(transcript.getTranscript());
                 }
-                 LeopardTranscript transcript = leopard.processFile(referenceFilepath);
-                 transcriptText.setText(transcript.getTranscriptString());
-                // Log.d(TAG, "transcript: " + transcript.getTranscriptString());
+//                else{
+//                    Toast.makeText(this, "Not available yet, I have no idea about how to make a file to a PCM, so this function is still WIP", Toast.LENGTH_SHORT).show();
+//                    // WIP? how we make that file to a PCM short[]
+//                    //cheetah.
+//                    //CheetahTranscript transcript = cheetah.process(referenceFilepath);
+//                    //transcriptText.setText(transcript.getTranscript());
+//                }
 
                 // play on speaker
                 // and disable looping playback
@@ -623,13 +621,15 @@ public class MainActivity extends AppCompatActivity {
                             enhancedSamplesWritten += frameBufferEnhanced.length;
                         }
 
-//                        CheetahTranscript transcriptObj = cheetah.process(frameBuffer);
-//                        updateTranscriptView(transcriptObj.getTranscript());
-//
-//                        if (transcriptObj.getIsEndpoint()) {
-//                            transcriptObj = cheetah.flush();
-//                            updateTranscriptView(transcriptObj.getTranscript() + " ");
-//                        }
+                        if (switchModelbtn.isChecked()) {
+                            CheetahTranscript transcriptObj = cheetah.process(frameBuffer);
+                            updateTranscriptView(transcriptObj.getTranscript());
+
+                            if (transcriptObj.getIsEndpoint()) {
+                                transcriptObj = cheetah.flush();
+                                updateTranscriptView(transcriptObj.getTranscript() + " ");
+                            }
+                        }
                     }
 
                     if ((totalSamplesWritten / koala.getFrameLength()) % 10 == 0) {
@@ -640,8 +640,10 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
 
-//                final CheetahTranscript transcriptObj = cheetah.flush();
-//                updateTranscriptView(transcriptObj.getTranscript());
+                if (switchModelbtn.isChecked()) {
+                    final CheetahTranscript transcriptObj = cheetah.flush();
+                    updateTranscriptView(transcriptObj.getTranscript());
+                }
 
                 audioRecord.stop();
 
