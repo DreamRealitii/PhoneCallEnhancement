@@ -29,6 +29,7 @@ import android.widget.ToggleButton;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.io.Reader;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
@@ -67,6 +68,7 @@ import ai.picovoice.leopard.LeopardActivationThrottledException;
 import ai.picovoice.leopard.LeopardException;
 import ai.picovoice.leopard.LeopardInvalidArgumentException;
 import ai.picovoice.leopard.LeopardTranscript;
+
 
 public class MainActivity extends AppCompatActivity {
 
@@ -171,6 +173,13 @@ public class MainActivity extends AppCompatActivity {
         checkRecordAudioPermission();
         checkInternetPermission();
         setupVisualizerFxAndUI();
+
+        Toast.makeText(this, "Connecting to websocket", Toast.LENGTH_SHORT).show();
+        checkWriteStoragePermission();
+
+        if(webSocket == null) {
+            webSocket = new WebSocketClient(cache);
+        }
     }
 
     @Override
@@ -282,6 +291,7 @@ public class MainActivity extends AppCompatActivity {
                 }else{
                     Toast.makeText(this, "Not available yet, I have no idea about how to make a file to a PCM, so this function is still WIP", Toast.LENGTH_SHORT).show();
                     // WIP? how we make that file to a PCM short[]
+                    //cheetah.
                     //CheetahTranscript transcript = cheetah.process(referenceFilepath);
                     //transcriptText.setText(transcript.getTranscript());
                 }
@@ -663,6 +673,5 @@ public class MainActivity extends AppCompatActivity {
             outputFile.write(byteBuf.array());
         }
     }
-
 
 }
