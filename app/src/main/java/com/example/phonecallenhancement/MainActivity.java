@@ -610,10 +610,11 @@ public class MainActivity extends AppCompatActivity {
                 totalSamplesWritten = 0;
                 int enhancedSamplesWritten = 0;
                 while (!stop.get()) {
+                    updateTranscriptView("Y");
                     if (audioRecord.read(frameBuffer, 0, frameBuffer.length) == frameBuffer.length) {
                         short[] frameBufferEnhanced = koala.process(frameBuffer);
                         VolumeControl.NormalizeVolume(frameBufferEnhanced);
-
+                        updateTranscriptView("O");
                         writeFrame(referenceFile, frameBuffer);
                         totalSamplesWritten += frameBuffer.length;
                         if (totalSamplesWritten >= koalaDelay) {
@@ -624,6 +625,7 @@ public class MainActivity extends AppCompatActivity {
                         if (switchModelbtn.isChecked()) {
                             CheetahTranscript transcriptObj = cheetah.process(frameBuffer);
                             updateTranscriptView(transcriptObj.getTranscript());
+                            Log.d("Cheetah", transcriptObj.getTranscript());
 
                             if (transcriptObj.getIsEndpoint()) {
                                 transcriptObj = cheetah.flush();
