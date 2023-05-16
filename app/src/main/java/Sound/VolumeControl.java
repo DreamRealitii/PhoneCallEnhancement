@@ -10,8 +10,16 @@ public class VolumeControl {
     private static final double MINIMUM_VOLUME = 0.001 * Short.MAX_VALUE;
     // The volume calculated from the previous run of NormalizeVolume().+
     private static double previousVolume = DESIRED_VOLUME;
+    private static boolean enabled = true;
+
+    public static void ToggleEnabled() {
+        enabled = !enabled;
+    }
 
     public static void NormalizeVolume(short[] buffer) {
+        if (!enabled)
+            return;
+
         short[] maxVolume = {0};
         double averageVolume = GetAverageVolume(buffer, maxVolume);
         if (averageVolume < MINIMUM_VOLUME)

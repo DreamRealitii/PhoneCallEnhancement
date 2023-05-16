@@ -297,6 +297,10 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    public void onClickVolumeButton(View view) {
+        VolumeControl.ToggleEnabled();
+    }
+
     private void onKoalaInitError(String error) {
         TextView errorMessage = findViewById(R.id.errorMessage);
         errorMessage.setText(error);
