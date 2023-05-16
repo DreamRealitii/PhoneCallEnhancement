@@ -627,7 +627,7 @@ public class MainActivity extends AppCompatActivity {
 
                         // Copy the buffered contents to the cheetah buffer
                         if (switchModelbtn.isChecked()) {
-                            int offset = writeCheetah ? frameBufferEnhanced.length - 1 : 0;
+                            int offset = writeCheetah ? frameBufferEnhanced.length: 0;
                             System.arraycopy(frameBufferEnhanced, 0, cheetahFrameBuffer, offset, frameBufferEnhanced.length);
                         }
 
