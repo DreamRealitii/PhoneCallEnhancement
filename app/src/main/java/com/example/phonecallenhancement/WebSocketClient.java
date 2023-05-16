@@ -2,6 +2,9 @@ package com.example.phonecallenhancement;
 
 import android.media.MediaPlayer;
 import android.util.Log;
+import android.widget.Toast;
+
+import com.google.android.gms.tasks.OnCompleteListener;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -12,6 +15,7 @@ import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Queue;
+import java.util.UUID;
 
 public class WebSocketClient {
     private static final String TAG = "WebSocket";
@@ -21,6 +25,7 @@ public class WebSocketClient {
     private byte[] decodedBytes;
 
     private Queue<byte[]> receivedInformation;
+    private String username;
 
     public WebSocketClient(File cache) {
         this.cache = cache;
@@ -28,6 +33,7 @@ public class WebSocketClient {
         connected = true;
         decodedBytes = null;
         receivedInformation = new ArrayDeque<>();
+        username = UUID.randomUUID().toString();
     }
 
     public void toggle() {
@@ -48,7 +54,7 @@ public class WebSocketClient {
                 }
                 fileInputStream.close();
                 //webSocketClient.send(s.toString());
-                webSocketClient.send("MobileClient>" + encodedString.toString());
+                webSocketClient.send(username + ">" + encodedString.toString());
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -87,7 +93,7 @@ public class WebSocketClient {
             @Override
             public void onTextReceived(String s) {
                 Log.d(TAG, "Message received " + s);
-
+                //Toast.makeText(this, "Audio stop command interrupted\n", Toast.LENGTH_SHORT).show();
                 try {
                     String b64Data = s.split(">")[1];
                     //Log.i("WebSocket", b64Data);
@@ -112,6 +118,12 @@ public class WebSocketClient {
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
+                    mp.wait();
+                    mp.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+                        public void onCompletion(MediaPlayer mMediaPlayer) {
+                            mMediaPlayer.release();
+                        }
+                    });
 
                     Log.i("WebSocket", "Done");
                 } catch (Exception e) {
