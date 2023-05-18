@@ -1,6 +1,7 @@
 package com.example.phonecallenhancement;
 
 import android.media.MediaPlayer;
+import android.os.Build;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -15,6 +16,7 @@ import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Queue;
+import java.util.Random;
 import java.util.UUID;
 
 public class WebSocketClient {
@@ -72,6 +74,40 @@ public class WebSocketClient {
        return receivedInformation.poll();
     }
 
+    public static String getUid() {
+        int leftLimit = 97; // letter 'a'
+        int rightLimit = 122; // letter 'z'
+        int targetStringLength = 3;
+        Random random = new Random();
+
+        return random.ints(leftLimit, rightLimit + 1)
+                .limit(targetStringLength)
+                .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append)
+                .toString();
+    }
+
+    private String capitalize(String s) {
+        if (s == null || s.length() == 0) {
+            return "";
+        }
+        char first = s.charAt(0);
+        if (Character.isUpperCase(first)) {
+            return s;
+        } else {
+            return Character.toUpperCase(first) + s.substring(1);
+        }
+    }
+    private String getDeviceName() {
+        String manufacturer = Build.MANUFACTURER;
+        String model = Build.MODEL;
+        String uid = getUid();
+        if (model.startsWith(manufacturer)) {
+            return uid + ":" + capitalize(model);
+        } else {
+            return uid + ":" + capitalize(manufacturer) + ":" + model;
+        }
+    }
+
     private void createWebSocketClient() {
         URI uri;
         try {
@@ -87,7 +123,7 @@ public class WebSocketClient {
             @Override
             public void onOpen() {
                 Log.d(TAG, "Session is starting");
-                webSocketClient.send("MobileClient>Hello World!");
+                webSocketClient.send(getDeviceName() + ">Hello World!");
             }
 
             @Override
