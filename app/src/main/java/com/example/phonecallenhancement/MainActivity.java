@@ -115,7 +115,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String MODEL_FILE = "leopard_params.pv";
     private Leopard leopard;
     private int bufferSize;
-    private BlockingQueue<short[]> audioDataQueue;
+    private BlockingQueue<short[]> audioDataQueue = new LinkedBlockingQueue<short[]>();;
     public short[] getAudioData() throws InterruptedException {
         return audioDataQueue.take();
     }
@@ -258,6 +258,9 @@ public class MainActivity extends AppCompatActivity {
     public void onClickRecord(View view) {
         try {
             if (recordButton.isChecked()) {
+                stop.set(false);
+
+                // Stopping all speaker voice
                 if (referenceMediaPlayer.isPlaying()) {
                     referenceMediaPlayer.stop();
                 }
@@ -266,13 +269,12 @@ public class MainActivity extends AppCompatActivity {
                 }
 
                 if (hasRecordPermission()) {
-                    stop.set(false);
                     startRecording();
-
                     microphoneReader.start();
                 } else {
                     checkRecordAudioPermission();
                 }
+
             } else {
                 stop.set(true);
                 microphoneReader.stop();
@@ -333,8 +335,6 @@ public class MainActivity extends AppCompatActivity {
         }
 
         String encoded = Base64.encodeToString(bytes, URL_SAFE);
-        //String encoded = new String(Base64.encodeBase64URLSafe(bytes));
-//        Log.d(TAG, "wavToBase64: " + encoded);
 
         return encoded;
     }
@@ -436,8 +436,6 @@ public class MainActivity extends AppCompatActivity {
 
         audioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC, sampleRate, channelConfig, audioFormat, bufferSize);
 
-        audioDataQueue = new LinkedBlockingQueue<short[]>();
-
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -479,19 +477,13 @@ public class MainActivity extends AppCompatActivity {
             public void run() {
                 // This code will be executed every 1/20 second
                 try {
-                    if (audioDataQueue == null) {
-                        beforeProcessWave.updateVisualizer((short[]) null);
-                    } else {
-                        if (!stop.get()) {
-                            beforeProcessWave.updateVisualizer(getAudioData());
-                        }
-                    }
+                    // outgoing wave
+                    beforeProcessWave.updateVisualizer(getAudioData());
+
+                    // incoming wave
                     if (webSocket == null) {
                         afterProcessWave.updateVisualizer((short[]) null);
                     } else {
-//                        if(stop.get()) {
-//                            afterProcessWave.updateVisualizer(webSocket.getAudio());
-//                        }
                         byte[] data = webSocket.getAudio();
                         if(data!= null) {
                             Log.d(TAG, "websocket data: " + Arrays.toString(data));
@@ -499,7 +491,7 @@ public class MainActivity extends AppCompatActivity {
                         }
                     }
 
-                } catch (Exception e) {
+                } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
             }

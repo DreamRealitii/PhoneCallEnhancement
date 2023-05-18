@@ -14,6 +14,7 @@ import android.view.View;
  * {@link Visualizer.OnDataCaptureListener#onWaveFormDataCapture }
  */
 public class VisualizerView extends View {
+    private static final String TAG = "Debugging";
     private short[] mShorts;
     private float[] mPoints;
     private final Rect mRect = new Rect();
