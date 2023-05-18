@@ -18,6 +18,7 @@ import android.media.AudioRecord;
 import android.media.MediaPlayer;
 import android.media.MediaRecorder;
 import android.os.Bundle;
+import android.os.Debug;
 import android.os.Process;
 import android.util.Base64;
 import android.util.Log;
@@ -143,7 +144,7 @@ public class MainActivity extends AppCompatActivity {
 
         initKoala();
         Log.d(TAG,"koala rate: " + koala.getSampleRate()); //16000 hz
-        Log.d(TAG,"Koala buffer: " + koala.getFrameLength());  // 512
+        Log.d(TAG,"Koala buffer: " + koala.getFrameLength());  // 256
         initLeopard();
         Log.d(TAG, "Leopard version: " + leopard.getVersion());
         initCheetah();
@@ -401,7 +402,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void updateTranscriptView(String transcript) {
-        Log.d(TAG, transcript);
         runOnUiThread(() -> {
             if (transcript.length() != 0) {
                 transcriptText.append(transcript);
@@ -558,6 +558,8 @@ public class MainActivity extends AppCompatActivity {
 
             started.set(true);
 
+            transcriptText.setText("");
+
             Executors.newSingleThreadExecutor().submit((Callable<Void>) () -> {
                 Process.setThreadPriority(Process.THREAD_PRIORITY_URGENT_AUDIO);
                 read();
@@ -633,8 +635,11 @@ public class MainActivity extends AppCompatActivity {
 
                         if (switchModelbtn.isChecked() && writeCheetah) {
                             CheetahTranscript transcriptObj = cheetah.process(cheetahFrameBuffer);
-                            updateTranscriptView(transcriptObj.getTranscript());
-                            Log.d("Cheetah", transcriptObj.getTranscript());
+                            String newString = transcriptObj.getTranscript();
+                            if (!newString.equals("")) {
+                                updateTranscriptView(newString);
+                                Log.d("Cheetah", newString);
+                            }
 
                             if (transcriptObj.getIsEndpoint()) {
                                 transcriptObj = cheetah.flush();
