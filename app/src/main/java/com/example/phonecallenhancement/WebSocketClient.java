@@ -23,6 +23,7 @@ public class WebSocketClient {
     private Boolean connected;
     private byte[] decodedBytes;
 
+    private Queue<String> incomingString;
     private Queue<byte[]> receivedInformation;
     private String username;
 
@@ -165,6 +166,7 @@ public class WebSocketClient {
                             }
                         });
                     }else{
+                        incomingString.add(s.split(">")[3]);
                         Log.d(TAG, "TEXT RCV" +  s.split(">")[3]);
                     }
                     Log.i("WebSocket", "Done");
@@ -219,5 +221,9 @@ public class WebSocketClient {
         System.arraycopy(wavData, headerSize, pureAudioData, 0, dataSize);
 
         return pureAudioData;
+    }
+
+    public String getNextTranscript() {
+        return incomingString.poll();
     }
 }
