@@ -226,4 +226,8 @@ public class WebSocketClient {
     public String getNextTranscript() {
         return incomingString.poll();
     }
+
+    public void sendTranscript(String input){
+        webSocketClient.send(username + ">" + (System.currentTimeMillis()) + ">T>"+ input);
+    }
 }
