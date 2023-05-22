@@ -53,7 +53,7 @@ public class WebSocketClient {
                 }
                 fileInputStream.close();
                 //webSocketClient.send(s.toString());
-                webSocketClient.send(username + ">" + (System.currentTimeMillis()) + ">"+ encodedString.toString());
+                webSocketClient.send(username + ">" + (System.currentTimeMillis()) + ">A>"+ encodedString.toString());
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -120,7 +120,7 @@ public class WebSocketClient {
             @Override
             public void onOpen() {
                 Log.d(TAG, "Session is starting");
-                webSocketClient.send(getDeviceName() + ">" + (System.currentTimeMillis()) + ">" +"Hello World!");
+                webSocketClient.send(getDeviceName() + ">" + (System.currentTimeMillis()) + ">T>" +"Hello World!");
 
             }
 
@@ -133,36 +133,40 @@ public class WebSocketClient {
                     long currUnix = System.currentTimeMillis();
                     //Log.d(TAG, currUnix + "ms");
                     Log.d(TAG, "Curr delay:" + (currUnix - timeStamp) + "ms");
-                    String b64Data = s.split(">")[2];
-                    //Log.i("WebSocket", b64Data);
-                    decodedBytes = Base64.getDecoder().decode(b64Data.getBytes());
-                    byte[] pureAudioData = convertWavToByteArray(decodedBytes);
-                    //Log.d(TAG, "pureAudioData: " + Arrays.toString(pureAudioData));
+                    String type = s.split(">")[2];
+                    if(type.equals("A")) {
+                        String b64Data = s.split(">")[3];
+                        //Log.i("WebSocket", b64Data);
+                        decodedBytes = Base64.getDecoder().decode(b64Data.getBytes());
+                        byte[] pureAudioData = convertWavToByteArray(decodedBytes);
+                        //Log.d(TAG, "pureAudioData: " + Arrays.toString(pureAudioData));
 
-                    receivedInformation.add(pureAudioData);
+                        receivedInformation.add(pureAudioData);
 
-                    File outputFile = File.createTempFile("file", ".webm", cache);
-                    outputFile.deleteOnExit();
-                    //Log.i("WebSocket",outputFile.toString());
-                    FileOutputStream fileoutputstream = new FileOutputStream(outputFile);
-                    fileoutputstream.write(decodedBytes);
-                    fileoutputstream.close();
+                        File outputFile = File.createTempFile("file", ".webm", cache);
+                        outputFile.deleteOnExit();
+                        //Log.i("WebSocket",outputFile.toString());
+                        FileOutputStream fileoutputstream = new FileOutputStream(outputFile);
+                        fileoutputstream.write(decodedBytes);
+                        fileoutputstream.close();
 
-                    MediaPlayer mp = new MediaPlayer();
-                    try {
-                        mp.setDataSource(outputFile.toString());
-                        mp.prepare();
-                        mp.start();
-                    } catch (Exception e) {
-                        //e.printStackTrace();
-                    }
-                    mp.wait();
-                    mp.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-                        public void onCompletion(MediaPlayer mMediaPlayer) {
-                            mMediaPlayer.release();
+                        MediaPlayer mp = new MediaPlayer();
+                        try {
+                            mp.setDataSource(outputFile.toString());
+                            mp.prepare();
+                            mp.start();
+                        } catch (Exception e) {
+                            //e.printStackTrace();
                         }
-                    });
-
+                        mp.wait();
+                        mp.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+                            public void onCompletion(MediaPlayer mMediaPlayer) {
+                                mMediaPlayer.release();
+                            }
+                        });
+                    }else{
+                        Log.d(TAG, "TEXT RCV" +  s.split(">")[3]);
+                    }
                     Log.i("WebSocket", "Done");
                 } catch (Exception e) {
                     // TODO: handle exception
