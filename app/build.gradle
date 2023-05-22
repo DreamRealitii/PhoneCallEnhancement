@@ -61,5 +61,4 @@ dependencies {
     implementation 'com.squareup.okhttp3:okhttp:4.9.3'
     implementation 'ai.picovoice:leopard-android:1.2.0'
     implementation 'ai.picovoice:cheetah-android:1.1.0'
-
 }

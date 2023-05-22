@@ -18,6 +18,7 @@ import android.media.AudioRecord;
 import android.media.MediaPlayer;
 import android.media.MediaRecorder;
 import android.os.Bundle;
+import android.os.Debug;
 import android.os.Process;
 import android.util.Base64;
 import android.util.Log;
@@ -45,14 +46,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import Sound.VolumeControl;
-import ai.picovoice.cheetah.Cheetah;
-import ai.picovoice.cheetah.CheetahActivationException;
-import ai.picovoice.cheetah.CheetahActivationLimitException;
-import ai.picovoice.cheetah.CheetahActivationRefusedException;
-import ai.picovoice.cheetah.CheetahActivationThrottledException;
-import ai.picovoice.cheetah.CheetahException;
-import ai.picovoice.cheetah.CheetahInvalidArgumentException;
-import ai.picovoice.cheetah.CheetahTranscript;
 import ai.picovoice.koala.Koala;
 import ai.picovoice.koala.KoalaActivationException;
 import ai.picovoice.koala.KoalaActivationLimitException;
@@ -68,6 +61,7 @@ import ai.picovoice.leopard.LeopardActivationThrottledException;
 import ai.picovoice.leopard.LeopardException;
 import ai.picovoice.leopard.LeopardInvalidArgumentException;
 import ai.picovoice.leopard.LeopardTranscript;
+import ai.picovoice.cheetah.*;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -102,7 +96,6 @@ public class MainActivity extends AppCompatActivity {
     //---------FIELDS------------
 
     private static final String ACCESS_KEY = BuildConfig.PICOVOICE_API_KEY;
-    private static final String CHEETAH_MODEL_FILE = "cheetah_params.pv";
 
     // koala API that is used for speech enhancement https://picovoice.ai/docs/koala/
     // cheeatah API for real-time transcription https://picovoice.ai/platform/cheetah/
@@ -111,9 +104,11 @@ public class MainActivity extends AppCompatActivity {
     // nb2: Spent 15+ hrs trying to make google speech-to-text work but it's impossible to do...
 
     public Koala koala;
-    private Cheetah cheetah;
-    private static final String MODEL_FILE = "leopard_params.pv";
+    private static final String LEOPARD_MODEL_FILE = "leopard_params.pv";
+    private static final String CHEETAH_MODEL_FILE = "cheetah_params.pv";
+
     private Leopard leopard;
+    private Cheetah cheetah;
     private int bufferSize;
     private BlockingQueue<short[]> audioDataQueue = new LinkedBlockingQueue<short[]>();;
     public short[] getAudioData() throws InterruptedException {
@@ -149,10 +144,14 @@ public class MainActivity extends AppCompatActivity {
 
         initKoala();
         Log.d(TAG,"koala rate: " + koala.getSampleRate()); //16000 hz
+        Log.d(TAG,"Koala buffer: " + koala.getFrameLength());  // 256
         initLeopard();
         Log.d(TAG, "Leopard version: " + leopard.getVersion());
         initCheetah();
         Log.d(TAG, "Cheetah version: " + cheetah.getVersion());
+        Log.d(TAG,"Cheetah rate: " + cheetah.getSampleRate()); //16000 hz
+        Log.d(TAG,"Cheetah buffer: " + cheetah.getFrameLength());  // 512
+
 
 
         microphoneReader = new MicrophoneReader();
@@ -290,20 +289,21 @@ public class MainActivity extends AppCompatActivity {
                     LeopardTranscript transcript = leopard.processFile(referenceFilepath);
                     transcriptText.setText(transcript.getTranscriptString());
                     // Log.d(TAG, "transcript: " + transcript.getTranscriptString());
-                }else{
-                    Toast.makeText(this, "Not available yet, I have no idea about how to make a file to a PCM, so this function is still WIP", Toast.LENGTH_SHORT).show();
-                    // WIP? how we make that file to a PCM short[]
-                    //cheetah.
-                    //CheetahTranscript transcript = cheetah.process(referenceFilepath);
-                    //transcriptText.setText(transcript.getTranscript());
                 }
+//                else{
+//                    Toast.makeText(this, "Not available yet, I have no idea about how to make a file to a PCM, so this function is still WIP", Toast.LENGTH_SHORT).show();
+//                    // WIP? how we make that file to a PCM short[]
+//                    //cheetah.
+//                    //CheetahTranscript transcript = cheetah.process(referenceFilepath);
+//                    //transcriptText.setText(transcript.getTranscript());
+//                }
 
                 // play on speaker
                 // and disable looping playback
                 referenceMediaPlayer.start();
                 enhancedMediaPlayer.start();
             }
-        } catch (InterruptedException | IOException | LeopardException e) {
+        } catch (Exception e) {
             e.printStackTrace();
             // Toast.makeText(this, "Audio stop command interrupted\n", Toast.LENGTH_SHORT).show();
         }
@@ -361,7 +361,7 @@ public class MainActivity extends AppCompatActivity {
         try {
             leopard = new Leopard.Builder()
                     .setAccessKey(ACCESS_KEY)
-                    .setModelPath(MODEL_FILE)
+                    .setModelPath(LEOPARD_MODEL_FILE)
                     .setEnableAutomaticPunctuation(true)
                     .build(getApplicationContext());
         } catch (LeopardInvalidArgumentException e) {
@@ -399,6 +399,22 @@ public class MainActivity extends AppCompatActivity {
         } catch (CheetahException e) {
             onKoalaInitError("Failed to initialize Cheetah " + e.getMessage());
         }
+    }
+
+    private void updateTranscriptView(String transcript) {
+        runOnUiThread(() -> {
+            if (transcript.length() != 0) {
+                transcriptText.append(transcript);
+
+                final int scrollAmount = transcriptText.getLayout().getLineTop(transcriptText.getLineCount()) -
+                        transcriptText.getHeight() +
+                        transcriptText.getLineHeight();
+
+                if (scrollAmount > 0) {
+                    transcriptText.scrollTo(0, scrollAmount);
+                }
+            }
+        });
     }
 
     private boolean hasRecordPermission() {
@@ -534,6 +550,8 @@ public class MainActivity extends AppCompatActivity {
 
             started.set(true);
 
+            transcriptText.setText("");
+
             Executors.newSingleThreadExecutor().submit((Callable<Void>) () -> {
                 Process.setThreadPriority(Process.THREAD_PRIORITY_URGENT_AUDIO);
                 read();
@@ -563,7 +581,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @SuppressLint({"MissingPermission", "SetTextI18n", "DefaultLocale"})
-        private void read() throws KoalaException {
+        private void read() throws KoalaException, CheetahException {
             final int minBufferSize = AudioRecord.getMinBufferSize(
                     koala.getSampleRate(),
                     AudioFormat.CHANNEL_IN_MONO,
@@ -573,6 +591,7 @@ public class MainActivity extends AppCompatActivity {
             AudioRecord audioRecord = null;
 
             short[] frameBuffer = new short[koala.getFrameLength()];
+            short[] cheetahFrameBuffer = new short[cheetah.getFrameLength()];
 
             try {
                 audioRecord = new AudioRecord(
@@ -586,18 +605,40 @@ public class MainActivity extends AppCompatActivity {
                 final int koalaDelay = koala.getDelaySample();
 
                 totalSamplesWritten = 0;
+                boolean writeCheetah = false;
                 int enhancedSamplesWritten = 0;
+
                 while (!stop.get()) {
                     if (audioRecord.read(frameBuffer, 0, frameBuffer.length) == frameBuffer.length) {
                         short[] frameBufferEnhanced = koala.process(frameBuffer);
                         VolumeControl.NormalizeVolume(frameBufferEnhanced);
-
                         writeFrame(referenceFile, frameBuffer);
                         totalSamplesWritten += frameBuffer.length;
                         if (totalSamplesWritten >= koalaDelay) {
                             writeFrame(enhancedFile, frameBufferEnhanced);
                             enhancedSamplesWritten += frameBufferEnhanced.length;
                         }
+
+                        // Copy the buffered contents to the cheetah buffer
+                        if (switchModelbtn.isChecked()) {
+                            int offset = writeCheetah ? frameBufferEnhanced.length: 0;
+                            System.arraycopy(frameBufferEnhanced, 0, cheetahFrameBuffer, offset, frameBufferEnhanced.length);
+                        }
+
+                        if (switchModelbtn.isChecked() && writeCheetah) {
+                            CheetahTranscript transcriptObj = cheetah.process(cheetahFrameBuffer);
+                            String newString = transcriptObj.getTranscript();
+                            if (!newString.equals("")) {
+                                updateTranscriptView(newString);
+                                Log.d("Cheetah", newString);
+                            }
+
+                            if (transcriptObj.getIsEndpoint()) {
+                                transcriptObj = cheetah.flush();
+                                updateTranscriptView(transcriptObj.getTranscript() + " ");
+                            }
+                        }
+                        writeCheetah = !writeCheetah;
                     }
 
                     if ((totalSamplesWritten / koala.getFrameLength()) % 10 == 0) {
@@ -606,6 +647,11 @@ public class MainActivity extends AppCompatActivity {
                             recordedText.setText(String.format("Recording: %.1fs", secondsRecorded));
                         });
                     }
+                }
+
+                if (switchModelbtn.isChecked()) {
+                    final CheetahTranscript transcriptObj = cheetah.flush();
+                    updateTranscriptView(transcriptObj.getTranscript());
                 }
 
                 audioRecord.stop();
