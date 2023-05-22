@@ -502,7 +502,7 @@ public class MainActivity extends AppCompatActivity {
                     } else {
                         byte[] data = webSocket.getAudio();
                         if(data!= null) {
-                            Log.d(TAG, "websocket data: " + Arrays.toString(data));
+                            //Log.d(TAG, "websocket data: " + Arrays.toString(data));
                             afterProcessWave.updateVisualizer(data);
                         }
                     }
