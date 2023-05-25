@@ -27,7 +27,9 @@ public class WebSocketClient {
     private Queue<byte[]> receivedInformation;
     private String username;
 
-    private Boolean recv = false;
+    private Boolean recv;
+
+
 
     public WebSocketClient(File cache) {
         this.cache = cache;
@@ -37,6 +39,9 @@ public class WebSocketClient {
         receivedInformation = new ArrayDeque<>();
         username = UUID.randomUUID().toString();
         incomingString = new ArrayDeque<>();
+
+        recv = false;
+
     }
 
     public void toggle() {
@@ -130,14 +135,34 @@ public class WebSocketClient {
 
             @Override
             public void onTextReceived(String s) {
-                if(recv) {
+                /*
+                while(true) {
                     try {
-                        Thread.sleep(100);
+                        if (recv) {
+                            //Log.d("MAIN", "WAIT");
+                            Thread.sleep(1);
+                        }else{
+                            break;
+                        }
                     } catch (InterruptedException e) {
                         throw new RuntimeException(e);
                     }
                 }
+                //Log.d("MAIN", "IN");
+
+                 */
                 recv = true;
+                MediaPlayer mp = new MediaPlayer();
+                mp.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+                    public void onCompletion(MediaPlayer mMediaPlayer) {
+                        //mMediaPlayer.release();
+                        Log.d("T", "DONE");
+                        mp.stop();
+                        mp.reset();
+                        mp.release();
+                        recv = false;
+                    }
+                });
                 //Log.d(TAG, "Message received " + s);
                 //Toast.makeText(this, "Audio stop command interrupted\n", Toast.LENGTH_SHORT).show();
                 try {
@@ -162,32 +187,29 @@ public class WebSocketClient {
                         fileoutputstream.write(decodedBytes);
                         fileoutputstream.close();
 
-                        MediaPlayer mp = new MediaPlayer();
                         try {
                             mp.setDataSource(outputFile.toString());
                             mp.prepare();
                             mp.start();
                         } catch (Exception e) {
+                            recv = false;
                             //e.printStackTrace();
                         }
-                        mp.wait();
-                        mp.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-                            public void onCompletion(MediaPlayer mMediaPlayer) {
-                                mMediaPlayer.release();
-                            }
-                        });
-                        mp.release();
-                        mp = null;
+                        //mp.wait();
+                        //Thread.sleep(mp.getDuration()*1000);
+                        //mp.release();
+                        //mp = null;
                     }else{
                         incomingString.add(s.split(">")[3]);
                         Log.d(TAG, "TEXT RCV" +  s.split(">")[3]);
+                        recv = false;
                     }
                     Log.i("WebSocket", "Done");
                 } catch (Exception e) {
                     // TODO: handle exception
+                    recv = false;
                     //e.printStackTrace();
                 }
-                recv = false;
             }
 
             @Override
