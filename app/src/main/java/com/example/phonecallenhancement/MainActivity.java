@@ -197,6 +197,7 @@ public class MainActivity extends AppCompatActivity {
         koala.delete();
         leopard.delete();
         cheetah.delete();
+        webSocket.close();
     }
 
     @Override

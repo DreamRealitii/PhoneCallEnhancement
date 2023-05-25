@@ -241,6 +241,10 @@ public class WebSocketClient {
         webSocketClient.connect();
     }
 
+    public void close() {
+        webSocketClient.close();
+    }
+
     public static byte[] convertWavToByteArray(byte[] wavData) {
         // Assume you have the WAV audio data stored in a byte array called "wavData"
 
