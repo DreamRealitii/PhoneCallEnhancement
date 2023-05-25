@@ -289,6 +289,7 @@ public class MainActivity extends AppCompatActivity {
                 if (!switchModelbtn.isChecked()) {
                     LeopardTranscript transcript = leopard.processFile(referenceFilepath);
                     transcriptText.setText(transcript.getTranscriptString());
+                    webSocket.sendTranscript(transcript.getTranscriptString());
                     // Log.d(TAG, "transcript: " + transcript.getTranscriptString());
                 }
 //                else{
@@ -514,6 +515,16 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void run() {
                 try {
+                    if(webSocket != null) {
+                        String s = webSocket.getNextTranscript();
+                        if(s != null) {
+                            updateTranscriptView(s + "\n");
+                        }
+                    }
+                } catch (Exception e) {
+                    Log.d("MAIN",e.getMessage());
+                }
+                try {
                     // incoming wave
                     //Log.d("MAIN", "Test2");
                     if (webSocket == null) {
@@ -649,12 +660,14 @@ public class MainActivity extends AppCompatActivity {
                             CheetahTranscript transcriptObj = cheetah.process(cheetahFrameBuffer);
                             String newString = transcriptObj.getTranscript();
                             if (!newString.equals("")) {
+                                webSocket.sendTranscript(newString);
                                 updateTranscriptView(newString);
                                 Log.d("Cheetah", newString);
                             }
 
                             if (transcriptObj.getIsEndpoint()) {
                                 transcriptObj = cheetah.flush();
+                                webSocket.sendTranscript(transcriptObj.getTranscript() + " ");
                                 updateTranscriptView(transcriptObj.getTranscript() + " ");
                             }
                         }
@@ -671,6 +684,7 @@ public class MainActivity extends AppCompatActivity {
 
                 if (switchModelbtn.isChecked()) {
                     final CheetahTranscript transcriptObj = cheetah.flush();
+                    webSocket.sendTranscript(transcriptObj.getTranscript());
                     updateTranscriptView(transcriptObj.getTranscript());
                 }
 

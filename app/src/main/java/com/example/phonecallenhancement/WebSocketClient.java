@@ -27,6 +27,8 @@ public class WebSocketClient {
     private Queue<byte[]> receivedInformation;
     private String username;
 
+    private Boolean recv = false;
+
     public WebSocketClient(File cache) {
         this.cache = cache;
         createWebSocketClient();
@@ -34,6 +36,7 @@ public class WebSocketClient {
         decodedBytes = null;
         receivedInformation = new ArrayDeque<>();
         username = UUID.randomUUID().toString();
+        incomingString = new ArrayDeque<>();
     }
 
     public void toggle() {
@@ -127,6 +130,14 @@ public class WebSocketClient {
 
             @Override
             public void onTextReceived(String s) {
+                if(recv) {
+                    try {
+                        Thread.sleep(100);
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+                recv = true;
                 //Log.d(TAG, "Message received " + s);
                 //Toast.makeText(this, "Audio stop command interrupted\n", Toast.LENGTH_SHORT).show();
                 try {
@@ -165,6 +176,8 @@ public class WebSocketClient {
                                 mMediaPlayer.release();
                             }
                         });
+                        mp.release();
+                        mp = null;
                     }else{
                         incomingString.add(s.split(">")[3]);
                         Log.d(TAG, "TEXT RCV" +  s.split(">")[3]);
@@ -174,6 +187,7 @@ public class WebSocketClient {
                     // TODO: handle exception
                     //e.printStackTrace();
                 }
+                recv = false;
             }
 
             @Override
