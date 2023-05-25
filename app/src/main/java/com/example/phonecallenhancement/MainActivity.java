@@ -112,7 +112,7 @@ public class MainActivity extends AppCompatActivity {
     private int bufferSize;
     private BlockingQueue<short[]> audioDataQueue = new LinkedBlockingQueue<short[]>();;
     public short[] getAudioData() throws InterruptedException {
-        Log.d("MAIN", "CALLED");
+        //Log.d("MAIN", "CALLED");
         return audioDataQueue.take();
     }
     private String referenceFilepath;
@@ -485,20 +485,20 @@ public class MainActivity extends AppCompatActivity {
     private void setupVisualizerFxAndUI() {
         // Create a VisualizerView (defined below), which will render the simplified audio
         // wave form to a Canvas.
-        Log.d("MAIN", "Started!");
+        //Log.d("MAIN", "Started!");
         Timer timer = new Timer();
         long interval = 50; // 1/20 second in milliseconds
 
         timer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
-                Log.d("MAIN", "Started!!!");
+                //Log.d("MAIN", "Started!!!");
                 // This code will be executed every 1/20 second
                 try {
                     // outgoing wave
-                    Log.d("MAIN", "Test3");
+                    //Log.d("MAIN", "Test3");
                     beforeProcessWave.updateVisualizer(getAudioData());
-                    Log.d("MAIN", "Test");
+                   //Log.d("MAIN", "Test");
 
                 } catch (InterruptedException e) {
                     //Log.e("MAIN", e.getMessage());
@@ -508,29 +508,31 @@ public class MainActivity extends AppCompatActivity {
         }, 0, interval);
 
         Timer timer1 = new Timer();
+        long interval1 = 400; // 1/20 second in milliseconds
+
         timer1.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
                 try {
                     // incoming wave
-                    Log.d("MAIN", "Test2");
+                    //Log.d("MAIN", "Test2");
                     if (webSocket == null) {
-                        Log.d("MAIN", "Nothing!");
+                        //Log.d("MAIN", "Nothing!");
                         afterProcessWave.updateVisualizer((short[]) null);
                     } else {
                         byte[] data = webSocket.getAudio();
                         if(data!= null) {
-                            Log.d(TAG, "websocket data: " + Arrays.toString(data));
+                            //Log.d(TAG, "websocket data: " + Arrays.toString(data));
                             afterProcessWave.updateVisualizer(data);
                         }else{
-                            Log.d("MAIN", "Nothing inside");
+                            //Log.d("MAIN", "Nothing inside");
                         }
                     }
                 }catch (Exception e) {
                     //Log.e("MAIN", e.getMessage());
                 }
             }
-        }, 0, interval);
+        }, 0, interval1);
     }
 
     private void resetMediaPlayer(MediaPlayer mediaPlayer, String audioFile) throws IOException {
