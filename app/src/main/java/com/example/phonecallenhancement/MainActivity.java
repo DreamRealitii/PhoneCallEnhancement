@@ -508,7 +508,7 @@ public class MainActivity extends AppCompatActivity {
         }, 0, interval);
 
         Timer timer1 = new Timer();
-        long interval1 = 400; // 1/20 second in milliseconds
+        long interval1 = 100; // 1/20 second in milliseconds
 
         timer1.scheduleAtFixedRate(new TimerTask() {
             @Override
