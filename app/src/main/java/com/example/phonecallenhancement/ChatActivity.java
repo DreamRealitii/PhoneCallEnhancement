@@ -3,10 +3,8 @@ package com.example.phonecallenhancement;
 import static android.util.Base64.URL_SAFE;
 
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
-import androidx.core.content.res.ResourcesCompat;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
@@ -18,7 +16,6 @@ import android.media.AudioRecord;
 import android.media.MediaPlayer;
 import android.media.MediaRecorder;
 import android.os.Bundle;
-import android.os.Debug;
 import android.os.Process;
 import android.util.Base64;
 import android.util.Log;
@@ -27,16 +24,18 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 
+import com.example.phonecallenhancement.databinding.ActivityChatBinding;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.io.Reader;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.BlockingQueue;
@@ -46,6 +45,14 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import Sound.VolumeControl;
+import ai.picovoice.cheetah.Cheetah;
+import ai.picovoice.cheetah.CheetahActivationException;
+import ai.picovoice.cheetah.CheetahActivationLimitException;
+import ai.picovoice.cheetah.CheetahActivationRefusedException;
+import ai.picovoice.cheetah.CheetahActivationThrottledException;
+import ai.picovoice.cheetah.CheetahException;
+import ai.picovoice.cheetah.CheetahInvalidArgumentException;
+import ai.picovoice.cheetah.CheetahTranscript;
 import ai.picovoice.koala.Koala;
 import ai.picovoice.koala.KoalaActivationException;
 import ai.picovoice.koala.KoalaActivationLimitException;
@@ -61,36 +68,15 @@ import ai.picovoice.leopard.LeopardActivationThrottledException;
 import ai.picovoice.leopard.LeopardException;
 import ai.picovoice.leopard.LeopardInvalidArgumentException;
 import ai.picovoice.leopard.LeopardTranscript;
-import ai.picovoice.cheetah.*;
 
+public class ChatActivity extends AppCompatActivity {
 
-public class MainActivity extends AppCompatActivity {
+    // UI
+    private ActivityChatBinding binding;
+    private List<ChatMessage> messages;
+    private ChatAdapter adapter;
 
-    // TODO (Walkie-Talkie protocol):
-    //  1) Get recording audio file from mic DONE
-    //  2) send it over websocket DONE
-    //  3) receive back reply and decode the data of Stringbase64Data DONE?
-    //  4) Got audio file, "enhance" it + transcript
-    //  5) Repeat step 1
-
-    // CONSTANTS
-    public static int MY_PERMISSIONS_RECORD_AUDIO = 1;
-    public static int MY_PERMISSIONS_INTERNET = 2;
-    public static int MY_PERMISSIONS_READ_MEDIA_VIDEO = 3;
-
-
-    // Filter usage for logcat:
-    // package:mine & (level:error | level:debug & tag:Debugging)
-    private static final String TAG = "Debugging";
-
-    // UI COMPONENTS
-    private ToggleButton recordButton, connectButton, switchModelbtn;
-    private ActionBar actionBar;
-    private AudioRecord audioRecord;
-    private VisualizerView beforeProcessWave, afterProcessWave;
-    private TextView recordedText;
-    private TextView transcriptText;
-
+    // WEB SOCKET
     private WebSocketClient webSocket;
 
     //---------FIELDS------------
@@ -110,7 +96,7 @@ public class MainActivity extends AppCompatActivity {
     private Leopard leopard;
     private Cheetah cheetah;
     private int bufferSize;
-    private BlockingQueue<short[]> audioDataQueue = new LinkedBlockingQueue<>();;
+    private BlockingQueue<short[]> audioDataQueue = new LinkedBlockingQueue<short[]>();;
     public short[] getAudioData() throws InterruptedException {
         return audioDataQueue.take();
     }
@@ -119,47 +105,30 @@ public class MainActivity extends AppCompatActivity {
     private MediaPlayer referenceMediaPlayer;
     private MediaPlayer enhancedMediaPlayer;
     private MicrophoneReader microphoneReader;
+
+    private AudioRecord audioRecord;
     private final AtomicBoolean stop = new AtomicBoolean(false);
     private File cache;
+
+    private float volumeSize;
+
+    // CONSTANTS
+    public static int MY_PERMISSIONS_RECORD_AUDIO = 1;
+    public static int MY_PERMISSIONS_INTERNET = 2;
+    public static int MY_PERMISSIONS_READ_MEDIA_VIDEO = 3;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        binding = ActivityChatBinding.inflate(getLayoutInflater());
+        setContentView(binding.getRoot());
 
-        cache = getCacheDir();
-        recordButton = this.findViewById(R.id.recordButton);
-        connectButton = this.findViewById(R.id.connectButton);
-        beforeProcessWave = this.findViewById(R.id.beforeWave);
-        afterProcessWave = this.findViewById(R.id.afterWave);
-        recordedText = this.findViewById(R.id.recordedText);
-        transcriptText = this.findViewById(R.id.transcriptContentTv);
-        switchModelbtn = this.findViewById(R.id.modelButton);
-
-        actionBar = getSupportActionBar();
-        actionBar.setTitle("Speech Enhancement");
-        actionBar.setBackgroundDrawable(ResourcesCompat.getDrawable(getResources(), R.drawable.bg, null));
-        actionBar.setHomeButtonEnabled(true);
-        actionBar.setDisplayOptions(ActionBar.DISPLAY_HOME_AS_UP);
-
-        initKoala();
-        Log.d(TAG,"koala rate: " + koala.getSampleRate()); //16000 hz
-        Log.d(TAG,"Koala buffer: " + koala.getFrameLength());  // 256
-        initLeopard();
-        Log.d(TAG, "Leopard version: " + leopard.getVersion());
-        initCheetah();
-        Log.d(TAG, "Cheetah version: " + cheetah.getVersion());
-        Log.d(TAG,"Cheetah rate: " + cheetah.getSampleRate()); //16000 hz
-        Log.d(TAG,"Cheetah buffer: " + cheetah.getFrameLength());  // 512
-
-
+        volumeSize = binding.layoutVolume.getLayoutParams().width;
 
         microphoneReader = new MicrophoneReader();
 
         referenceFilepath = getApplicationContext().getFileStreamPath("reference.wav").getAbsolutePath();
-        Log.d(TAG, "referenceFilepath: " + referenceFilepath);
         enhancedFilepath = getApplicationContext().getFileStreamPath("enhanced.wav").getAbsolutePath();
-        Log.d(TAG, "enhancedFilepath: " + enhancedFilepath);
         referenceMediaPlayer = new MediaPlayer();
         enhancedMediaPlayer = new MediaPlayer();
         // Disable looping
@@ -168,18 +137,22 @@ public class MainActivity extends AppCompatActivity {
         referenceMediaPlayer.setVolume(0, 0);
         enhancedMediaPlayer.setVolume(1, 1);
 
-        setVolumeControlStream(AudioManager.STREAM_MUSIC);
         checkRecordAudioPermission();
         checkInternetPermission();
+        checkWriteStoragePermission();
+
+        setVolumeControlStream(AudioManager.STREAM_MUSIC);
         setupVisualizerFxAndUI();
 
         Toast.makeText(this, "Connecting to websocket", Toast.LENGTH_SHORT).show();
-        checkWriteStoragePermission();
 
         if(webSocket == null) {
             webSocket = new WebSocketClient(cache);
         }
+
+        StartRecord();
     }
+
 
     @Override
     protected void onDestroy() {
@@ -230,71 +203,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     //---------LISTENERS--------------
-    public void onClickConnect(View view) {
-        Toast.makeText(this, "Connecting to websocket", Toast.LENGTH_SHORT).show();
-        checkWriteStoragePermission();
 
-        if(webSocket == null) {
-            webSocket = new WebSocketClient(cache);
-        }
-
-        if (connectButton.isChecked()) {
-            webSocket.toggle();
-        } else {
-            webSocket.toggle();
-        }
-
-    }
-
-    public void onClickChangeSTT(View view) {
-        if(!switchModelbtn.isChecked()) {
-            Toast.makeText(this, "Switched to Leopard", Toast.LENGTH_SHORT).show();
-        }else{
-            Toast.makeText(this, "Switched to Cheetah", Toast.LENGTH_SHORT).show();
-        }
-    }
-
-    public void onClickRecord(View view) {
+    public void StartRecord() {
         try {
-            if (recordButton.isChecked()) {
-                stop.set(false);
-
-                // Stopping all speaker voice
-                if (referenceMediaPlayer.isPlaying()) {
-                    referenceMediaPlayer.stop();
-                }
-                if (enhancedMediaPlayer.isPlaying()) {
-                    enhancedMediaPlayer.stop();
-                }
-
-                if (hasRecordPermission()) {
-                    startRecording();
-                    microphoneReader.start();
-                } else {
-                    checkRecordAudioPermission();
-                }
-
+            if (hasRecordPermission()) {
+                startRecording();
+                microphoneReader.start();
             } else {
-                stop.set(true);
-                microphoneReader.stop();
-
-                resetMediaPlayer(referenceMediaPlayer, referenceFilepath);
-                resetMediaPlayer(enhancedMediaPlayer, enhancedFilepath);
-
-                if(webSocket != null) {
-                    webSocket.sendAudio(referenceFilepath);
-                }
-
-                if (!switchModelbtn.isChecked()) {
-                    LeopardTranscript transcript = leopard.processFile(referenceFilepath);
-                    transcriptText.setText(transcript.getTranscriptString());
-                    // Log.d(TAG, "transcript: " + transcript.getTranscriptString());
-                }
-
-                // play on speaker
-                // and disable looping playback
-                referenceMediaPlayer.start();
-                enhancedMediaPlayer.start();
+                checkRecordAudioPermission();
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -307,12 +223,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void onKoalaInitError(String error) {
-        TextView errorMessage = findViewById(R.id.errorMessage);
-        errorMessage.setText(error);
-        errorMessage.setVisibility(View.VISIBLE);
-
-        recordButton.setEnabled(false);
-        recordButton.setError("error");
+         Toast.makeText(this, error, Toast.LENGTH_SHORT).show();
     }
 
     //--------HELPERS----------
@@ -397,14 +308,20 @@ public class MainActivity extends AppCompatActivity {
     private void updateTranscriptView(String transcript) {
         runOnUiThread(() -> {
             if (transcript.length() != 0) {
-                transcriptText.append(transcript);
+                binding.inputMessage.append(transcript);
+                String[] sentences = binding.inputMessage.getText().toString().split("\\.", 2);
+                if (sentences.length > 1) {
+                    // Make a new message bubble
+                    // set the remaining part
+                    binding.inputMessage.setText(sentences[1]);
+                }
 
-                final int scrollAmount = transcriptText.getLayout().getLineTop(transcriptText.getLineCount()) -
-                        transcriptText.getHeight() +
-                        transcriptText.getLineHeight();
+                final int scrollAmount = binding.inputMessage.getLayout().getLineTop(binding.inputMessage.getLineCount()) -
+                        binding.inputMessage.getHeight() +
+                        binding.inputMessage.getLineHeight();
 
                 if (scrollAmount > 0) {
-                    transcriptText.scrollTo(0, scrollAmount);
+                    binding.inputMessage.scrollTo(0, scrollAmount);
                 }
             }
         });
@@ -479,26 +396,20 @@ public class MainActivity extends AppCompatActivity {
         // wave form to a Canvas.
 
         Timer timer = new Timer();
-        long interval = 50; // 1/20 second in milliseconds
+        long interval = 100; // 1/10 second in milliseconds
 
         timer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
                 // This code will be executed every 1/20 second
                 try {
-                    // outgoing wave
-                    beforeProcessWave.updateVisualizer(getAudioData());
+                    short[] data = getAudioData();
+                    float val = data[data.length / 2] / 2000;
+                    val = val > 2000 ? 1 : (float) (0.5 + val * 0.5);
+                    int size = (int) (val * volumeSize);
 
-                    // incoming wave
-                    if (webSocket == null) {
-                        afterProcessWave.updateVisualizer((short[]) null);
-                    } else {
-                        byte[] data = webSocket.getAudio();
-                        if(data!= null) {
-                            //Log.d(TAG, "websocket data: " + Arrays.toString(data));
-                            afterProcessWave.updateVisualizer(data);
-                        }
-                    }
+                    binding.layoutVolume.getLayoutParams().width = size;
+                    binding.layoutVolume.getLayoutParams().height = size;
 
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
@@ -520,6 +431,8 @@ public class MainActivity extends AppCompatActivity {
         mediaPlayer.prepare();
     }
 
+
+
     // PRIVATE CLASS
     private class MicrophoneReader {
         private final AtomicBoolean started = new AtomicBoolean(false);
@@ -530,11 +443,20 @@ public class MainActivity extends AppCompatActivity {
         private RandomAccessFile enhancedFile;
         private int totalSamplesWritten;
 
+        public int minBufferSize;
+        public int bufferSize;
+
         void start() throws IOException {
 
             if (started.get()) {
                 return;
             }
+
+            minBufferSize = AudioRecord.getMinBufferSize(
+                    koala.getSampleRate(),
+                    AudioFormat.CHANNEL_IN_MONO,
+                    AudioFormat.ENCODING_PCM_16BIT);
+            bufferSize = Math.max(koala.getSampleRate() / 2, minBufferSize);
 
             referenceFile = new RandomAccessFile(referenceFilepath, "rws");
             enhancedFile = new RandomAccessFile(enhancedFilepath, "rws");
@@ -543,7 +465,7 @@ public class MainActivity extends AppCompatActivity {
 
             started.set(true);
 
-            transcriptText.setText("");
+            binding.inputMessage.setText("");
 
             Executors.newSingleThreadExecutor().submit((Callable<Void>) () -> {
                 Process.setThreadPriority(Process.THREAD_PRIORITY_URGENT_AUDIO);
@@ -575,11 +497,7 @@ public class MainActivity extends AppCompatActivity {
 
         @SuppressLint({"MissingPermission", "SetTextI18n", "DefaultLocale"})
         private void read() throws KoalaException, CheetahException {
-            final int minBufferSize = AudioRecord.getMinBufferSize(
-                    koala.getSampleRate(),
-                    AudioFormat.CHANNEL_IN_MONO,
-                    AudioFormat.ENCODING_PCM_16BIT);
-            final int bufferSize = Math.max(koala.getSampleRate() / 2, minBufferSize);
+
 
             AudioRecord audioRecord = null;
 
@@ -613,12 +531,10 @@ public class MainActivity extends AppCompatActivity {
                         }
 
                         // Copy the buffered contents to the cheetah buffer
-                        if (switchModelbtn.isChecked()) {
-                            int offset = writeCheetah ? frameBufferEnhanced.length: 0;
-                            System.arraycopy(frameBufferEnhanced, 0, cheetahFrameBuffer, offset, frameBufferEnhanced.length);
-                        }
+                        int offset = writeCheetah ? frameBufferEnhanced.length: 0;
+                        System.arraycopy(frameBufferEnhanced, 0, cheetahFrameBuffer, offset, frameBufferEnhanced.length);
 
-                        if (switchModelbtn.isChecked() && writeCheetah) {
+                        if (writeCheetah) {
                             CheetahTranscript transcriptObj = cheetah.process(cheetahFrameBuffer);
                             String newString = transcriptObj.getTranscript();
                             if (!newString.equals("")) {
@@ -633,26 +549,12 @@ public class MainActivity extends AppCompatActivity {
                         }
                         writeCheetah = !writeCheetah;
                     }
-
-                    if ((totalSamplesWritten / koala.getFrameLength()) % 10 == 0) {
-                        runOnUiThread(() -> {
-                            double secondsRecorded = ((double) (totalSamplesWritten) / (double) (koala.getSampleRate()));
-                            recordedText.setText(String.format("Recording: %.1fs", secondsRecorded));
-                        });
-                    }
                 }
 
-                if (switchModelbtn.isChecked()) {
-                    final CheetahTranscript transcriptObj = cheetah.flush();
-                    updateTranscriptView(transcriptObj.getTranscript());
-                }
+                final CheetahTranscript transcriptObj = cheetah.flush();
+                updateTranscriptView(transcriptObj.getTranscript());
 
                 audioRecord.stop();
-
-                runOnUiThread(() -> {
-                    double secondsRecorded = ((double) (totalSamplesWritten) / (double) (koala.getSampleRate()));
-                    recordedText.setText(String.format("Recorded: %.1fs", secondsRecorded));
-                });
 
                 short[] emptyFrame = new short[koala.getFrameLength()];
                 Arrays.fill(emptyFrame, (short) 0);
@@ -704,5 +606,4 @@ public class MainActivity extends AppCompatActivity {
             outputFile.write(byteBuf.array());
         }
     }
-
 }
