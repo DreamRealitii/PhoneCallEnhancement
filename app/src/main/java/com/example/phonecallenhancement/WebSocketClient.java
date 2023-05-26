@@ -37,7 +37,7 @@ public class WebSocketClient {
         connected = true;
         decodedBytes = null;
         receivedInformation = new ArrayDeque<>();
-        username = UUID.randomUUID().toString();
+        username = getDeviceName();
         incomingString = new ArrayDeque<>();
 
         recv = false;
@@ -129,7 +129,7 @@ public class WebSocketClient {
             @Override
             public void onOpen() {
                 Log.d(TAG, "Session is starting");
-                webSocketClient.send(getDeviceName() + ">" + (System.currentTimeMillis()) + ">T>" +"Hello World!");
+                webSocketClient.send(username + ">" + (System.currentTimeMillis()) + ">T>" +"Hello World!");
 
             }
 
