@@ -415,23 +415,18 @@ public class MainActivity extends AppCompatActivity {
         timer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
-                //Log.d("MAIN", "Started!!!");
                 // This code will be executed every 1/20 second
                 try {
                     // outgoing wave
-                    //Log.d("MAIN", "Test3");
                     beforeProcessWave.updateVisualizer(getAudioData());
-                   //Log.d("MAIN", "Test");
-
                 } catch (InterruptedException e) {
-                    //Log.e("MAIN", e.getMessage());
-                    //throw new RuntimeException(e);
+                    e.printStackTrace();
                 }
             }
         }, 0, interval);
 
         Timer timer1 = new Timer();
-        long interval1 = 100; // 1/20 second in milliseconds
+        long interval1 = 50; // 1/20 second in milliseconds
 
         timer1.scheduleAtFixedRate(new TimerTask() {
             @Override
@@ -444,25 +439,22 @@ public class MainActivity extends AppCompatActivity {
                         }
                     }
                 } catch (Exception e) {
-                    Log.d("MAIN",e.getMessage());
+                    e.printStackTrace();
                 }
                 try {
                     // incoming wave
-                    //Log.d("MAIN", "Test2");
                     if (webSocket == null) {
-                        //Log.d("MAIN", "Nothing!");
                         afterProcessWave.updateVisualizer((short[]) null);
                     } else {
                         byte[] data = webSocket.getAudio();
                         if(data!= null) {
-                            //Log.d(TAG, "websocket data: " + Arrays.toString(data));
                             afterProcessWave.updateVisualizer(data);
-                        }else{
-                            //Log.d("MAIN", "Nothing inside");
+                        } else {
+                            afterProcessWave.updateVisualizer((short[]) null);
                         }
                     }
-                }catch (Exception e) {
-                    //Log.e("MAIN", e.getMessage());
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
             }
         }, 0, interval1);
