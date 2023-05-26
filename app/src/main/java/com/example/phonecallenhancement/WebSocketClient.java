@@ -49,7 +49,7 @@ public class WebSocketClient {
     }
 
     public void sendAudio(String s) {
-        if(!connected) {
+        if(connected) {
             File file = new File(s);
             StringBuilder encodedString = new StringBuilder();
             try {
@@ -239,6 +239,7 @@ public class WebSocketClient {
         webSocketClient.setReadTimeout(60000);
         webSocketClient.enableAutomaticReconnection(5000);
         webSocketClient.connect();
+        //connected = true;
     }
 
     public void close() {
