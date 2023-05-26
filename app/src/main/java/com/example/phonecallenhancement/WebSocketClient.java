@@ -27,21 +27,14 @@ public class WebSocketClient {
     private Queue<byte[]> receivedInformation;
     private String username;
 
-    private Boolean recv;
-
-
-
     public WebSocketClient(File cache) {
         this.cache = cache;
+        connected = false;
         createWebSocketClient();
-        connected = true;
         decodedBytes = null;
         receivedInformation = new ArrayDeque<>();
         username = getDeviceName();
         incomingString = new ArrayDeque<>();
-
-        recv = false;
-
     }
 
     public void toggle() {
@@ -49,7 +42,7 @@ public class WebSocketClient {
     }
 
     public void sendAudio(String s) {
-        if(!connected) {
+        if(connected) {
             File file = new File(s);
             StringBuilder encodedString = new StringBuilder();
             try {
@@ -119,6 +112,7 @@ public class WebSocketClient {
         try {
             // Connect to local host
             uri = new URI("ws://mc.alanyeung.co:16385/ws/channel-1");
+            connected = true;
         }
         catch (URISyntaxException e) {
             e.printStackTrace();
@@ -135,32 +129,14 @@ public class WebSocketClient {
 
             @Override
             public void onTextReceived(String s) {
-                /*
-                while(true) {
-                    try {
-                        if (recv) {
-                            //Log.d("MAIN", "WAIT");
-                            Thread.sleep(1);
-                        }else{
-                            break;
-                        }
-                    } catch (InterruptedException e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-                //Log.d("MAIN", "IN");
-
-                 */
-                recv = true;
                 MediaPlayer mp = new MediaPlayer();
                 mp.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
                     public void onCompletion(MediaPlayer mMediaPlayer) {
                         //mMediaPlayer.release();
-                        Log.d("T", "DONE");
+//                        Log.d("T", "DONE");
                         mp.stop();
                         mp.reset();
                         mp.release();
-                        recv = false;
                     }
                 });
                 //Log.d(TAG, "Message received " + s);
@@ -169,9 +145,9 @@ public class WebSocketClient {
                     long timeStamp = Long.parseLong(s.split(">")[1]);
                     long currUnix = System.currentTimeMillis();
                     //Log.d(TAG, currUnix + "ms");
-                    Log.d(TAG, "Curr delay:" + (currUnix - timeStamp) + "ms");
+//                    Log.d(TAG, "Curr delay:" + (currUnix - timeStamp) + "ms");
                     String type = s.split(">")[2];
-                    if(type.equals("A")) {
+                    if(type.equals("A")  && !s.split(">")[0].equals(username)) {
                         String b64Data = s.split(">")[3];
                         //Log.i("WebSocket", b64Data);
                         decodedBytes = Base64.getDecoder().decode(b64Data.getBytes());
@@ -192,23 +168,16 @@ public class WebSocketClient {
                             mp.prepare();
                             mp.start();
                         } catch (Exception e) {
-                            recv = false;
-                            //e.printStackTrace();
+                            e.printStackTrace();
                         }
-                        //mp.wait();
-                        //Thread.sleep(mp.getDuration()*1000);
-                        //mp.release();
-                        //mp = null;
                     }else{
-                        incomingString.add(s.split(">")[3]);
+                        if(!s.split(">")[0].equals(username)) {
+                            incomingString.add(s.split(">")[3]);
+                        }
                         Log.d(TAG, "TEXT RCV" +  s.split(">")[3]);
-                        recv = false;
                     }
-                    Log.i("WebSocket", "Done");
                 } catch (Exception e) {
-                    // TODO: handle exception
-                    recv = false;
-                    //e.printStackTrace();
+                    e.printStackTrace();
                 }
             }
 
@@ -239,6 +208,7 @@ public class WebSocketClient {
         webSocketClient.setReadTimeout(60000);
         webSocketClient.enableAutomaticReconnection(5000);
         webSocketClient.connect();
+        //connected = true;
     }
 
     public void close() {

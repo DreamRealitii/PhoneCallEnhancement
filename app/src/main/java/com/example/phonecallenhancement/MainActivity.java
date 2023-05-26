@@ -104,10 +104,7 @@ public class MainActivity extends AppCompatActivity {
     // nb2: Spent 15+ hrs trying to make google speech-to-text work but it's impossible to do...
 
     public Koala koala;
-    private static final String LEOPARD_MODEL_FILE = "leopard_params.pv";
     private static final String CHEETAH_MODEL_FILE = "cheetah_params.pv";
-
-    private Leopard leopard;
     private Cheetah cheetah;
     private int bufferSize;
     private BlockingQueue<short[]> audioDataQueue = new LinkedBlockingQueue<short[]>();;
@@ -117,8 +114,6 @@ public class MainActivity extends AppCompatActivity {
     }
     private String referenceFilepath;
     private String enhancedFilepath;
-    private MediaPlayer referenceMediaPlayer;
-    private MediaPlayer enhancedMediaPlayer;
     private MicrophoneReader microphoneReader;
     private final AtomicBoolean stop = new AtomicBoolean(false);
     private File cache;
@@ -146,8 +141,6 @@ public class MainActivity extends AppCompatActivity {
         initKoala();
         Log.d(TAG,"koala rate: " + koala.getSampleRate()); //16000 hz
         Log.d(TAG,"Koala buffer: " + koala.getFrameLength());  // 256
-        initLeopard();
-        Log.d(TAG, "Leopard version: " + leopard.getVersion());
         initCheetah();
         Log.d(TAG, "Cheetah version: " + cheetah.getVersion());
         Log.d(TAG,"Cheetah rate: " + cheetah.getSampleRate()); //16000 hz
@@ -161,13 +154,6 @@ public class MainActivity extends AppCompatActivity {
         Log.d(TAG, "referenceFilepath: " + referenceFilepath);
         enhancedFilepath = getApplicationContext().getFileStreamPath("enhanced.wav").getAbsolutePath();
         Log.d(TAG, "enhancedFilepath: " + enhancedFilepath);
-        referenceMediaPlayer = new MediaPlayer();
-        enhancedMediaPlayer = new MediaPlayer();
-        // Disable looping
-        referenceMediaPlayer.setLooping(false);
-        enhancedMediaPlayer.setLooping(false);
-        referenceMediaPlayer.setVolume(0, 0);
-        enhancedMediaPlayer.setVolume(1, 1);
 
         setVolumeControlStream(AudioManager.STREAM_MUSIC);
         checkRecordAudioPermission();
@@ -188,14 +174,7 @@ public class MainActivity extends AppCompatActivity {
         if (isFinishing() && audioRecord != null) {
             stopRecording();
         }
-        if (referenceMediaPlayer != null) {
-            referenceMediaPlayer.release();
-        }
-        if (enhancedMediaPlayer != null) {
-            enhancedMediaPlayer.release();
-        }
         koala.delete();
-        leopard.delete();
         cheetah.delete();
         webSocket.close();
     }
@@ -248,26 +227,11 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    public void onClickChangeSTT(View view) {
-        if(!switchModelbtn.isChecked()) {
-            Toast.makeText(this, "Switched to Leopard", Toast.LENGTH_SHORT).show();
-        }else{
-            Toast.makeText(this, "Switched to Cheetah", Toast.LENGTH_SHORT).show();
-        }
-    }
-
     public void onClickRecord(View view) {
         try {
             if (recordButton.isChecked()) {
                 stop.set(false);
 
-                // Stopping all speaker voice
-                if (referenceMediaPlayer.isPlaying()) {
-                    referenceMediaPlayer.stop();
-                }
-                if (enhancedMediaPlayer.isPlaying()) {
-                    enhancedMediaPlayer.stop();
-                }
 
                 if (hasRecordPermission()) {
                     startRecording();
@@ -280,35 +244,13 @@ public class MainActivity extends AppCompatActivity {
                 stop.set(true);
                 microphoneReader.stop();
 
-                resetMediaPlayer(referenceMediaPlayer, referenceFilepath);
-                resetMediaPlayer(enhancedMediaPlayer, enhancedFilepath);
-
+                // Send audio to server
                 if(webSocket != null) {
-                    webSocket.sendAudio(referenceFilepath);
+                    webSocket.sendAudio(enhancedFilepath);
                 }
-
-                if (!switchModelbtn.isChecked()) {
-                    LeopardTranscript transcript = leopard.processFile(referenceFilepath);
-                    transcriptText.setText(transcript.getTranscriptString());
-                    webSocket.sendTranscript(transcript.getTranscriptString());
-                    // Log.d(TAG, "transcript: " + transcript.getTranscriptString());
-                }
-//                else{
-//                    Toast.makeText(this, "Not available yet, I have no idea about how to make a file to a PCM, so this function is still WIP", Toast.LENGTH_SHORT).show();
-//                    // WIP? how we make that file to a PCM short[]
-//                    //cheetah.
-//                    //CheetahTranscript transcript = cheetah.process(referenceFilepath);
-//                    //transcriptText.setText(transcript.getTranscript());
-//                }
-
-                // play on speaker
-                // and disable looping playback
-                referenceMediaPlayer.start();
-                enhancedMediaPlayer.start();
             }
         } catch (Exception e) {
             e.printStackTrace();
-            // Toast.makeText(this, "Audio stop command interrupted\n", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -360,27 +302,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void initLeopard() {
-        try {
-            leopard = new Leopard.Builder()
-                    .setAccessKey(ACCESS_KEY)
-                    .setModelPath(LEOPARD_MODEL_FILE)
-                    .setEnableAutomaticPunctuation(true)
-                    .build(getApplicationContext());
-        } catch (LeopardInvalidArgumentException e) {
-            onKoalaInitError(String.format("%s\nEnsure your AccessKey '%s' is valid", e.getMessage(), ACCESS_KEY));
-        } catch (LeopardActivationException e) {
-            onKoalaInitError("AccessKey activation error");
-        } catch (LeopardActivationLimitException e) {
-            onKoalaInitError("AccessKey reached its device limit");
-        } catch (LeopardActivationRefusedException e) {
-            onKoalaInitError("AccessKey refused");
-        } catch (LeopardActivationThrottledException e) {
-            onKoalaInitError("AccessKey has been throttled");
-        } catch (LeopardException e) {
-            onKoalaInitError("Failed to initialize Leopard " + e.getMessage());
-        }
-    }
 
     private void initCheetah() {
         try {
@@ -408,14 +329,6 @@ public class MainActivity extends AppCompatActivity {
         runOnUiThread(() -> {
             if (transcript.length() != 0) {
                 transcriptText.append(transcript);
-
-                final int scrollAmount = transcriptText.getLayout().getLineTop(transcriptText.getLineCount()) -
-                        transcriptText.getHeight() +
-                        transcriptText.getLineHeight();
-
-                if (scrollAmount > 0) {
-                    transcriptText.scrollTo(0, scrollAmount);
-                }
             }
         });
     }
@@ -494,23 +407,18 @@ public class MainActivity extends AppCompatActivity {
         timer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
-                //Log.d("MAIN", "Started!!!");
                 // This code will be executed every 1/20 second
                 try {
                     // outgoing wave
-                    //Log.d("MAIN", "Test3");
                     beforeProcessWave.updateVisualizer(getAudioData());
-                   //Log.d("MAIN", "Test");
-
                 } catch (InterruptedException e) {
-                    //Log.e("MAIN", e.getMessage());
-                    //throw new RuntimeException(e);
+                    e.printStackTrace();
                 }
             }
         }, 0, interval);
 
         Timer timer1 = new Timer();
-        long interval1 = 100; // 1/20 second in milliseconds
+        long interval1 = 50; // 1/20 second in milliseconds
 
         timer1.scheduleAtFixedRate(new TimerTask() {
             @Override
@@ -523,25 +431,22 @@ public class MainActivity extends AppCompatActivity {
                         }
                     }
                 } catch (Exception e) {
-                    Log.d("MAIN",e.getMessage());
+                    e.printStackTrace();
                 }
                 try {
                     // incoming wave
-                    //Log.d("MAIN", "Test2");
                     if (webSocket == null) {
-                        //Log.d("MAIN", "Nothing!");
                         afterProcessWave.updateVisualizer((short[]) null);
                     } else {
                         byte[] data = webSocket.getAudio();
                         if(data!= null) {
-                            //Log.d(TAG, "websocket data: " + Arrays.toString(data));
                             afterProcessWave.updateVisualizer(data);
-                        }else{
-                            //Log.d("MAIN", "Nothing inside");
+                        } else {
+                            afterProcessWave.updateVisualizer((short[]) null);
                         }
                     }
-                }catch (Exception e) {
-                    //Log.e("MAIN", e.getMessage());
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
             }
         }, 0, interval1);
@@ -652,18 +557,16 @@ public class MainActivity extends AppCompatActivity {
                         }
 
                         // Copy the buffered contents to the cheetah buffer
-                        if (switchModelbtn.isChecked()) {
-                            int offset = writeCheetah ? frameBufferEnhanced.length: 0;
-                            System.arraycopy(frameBufferEnhanced, 0, cheetahFrameBuffer, offset, frameBufferEnhanced.length);
-                        }
+                        int offset = writeCheetah ? frameBufferEnhanced.length: 0;
+                        System.arraycopy(frameBufferEnhanced, 0, cheetahFrameBuffer, offset, frameBufferEnhanced.length);
 
-                        if (switchModelbtn.isChecked() && writeCheetah) {
+                        if (writeCheetah) {
                             CheetahTranscript transcriptObj = cheetah.process(cheetahFrameBuffer);
                             String newString = transcriptObj.getTranscript();
+
                             if (!newString.equals("")) {
                                 webSocket.sendTranscript(newString);
                                 updateTranscriptView(newString);
-                                Log.d("Cheetah", newString);
                             }
 
                             if (transcriptObj.getIsEndpoint()) {
@@ -672,6 +575,7 @@ public class MainActivity extends AppCompatActivity {
                                 updateTranscriptView(transcriptObj.getTranscript() + " ");
                             }
                         }
+
                         writeCheetah = !writeCheetah;
                     }
 
@@ -683,11 +587,9 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
 
-                if (switchModelbtn.isChecked()) {
-                    final CheetahTranscript transcriptObj = cheetah.flush();
-                    webSocket.sendTranscript(transcriptObj.getTranscript());
-                    updateTranscriptView(transcriptObj.getTranscript());
-                }
+                final CheetahTranscript transcriptObj = cheetah.flush();
+                webSocket.sendTranscript(transcriptObj.getTranscript());
+                updateTranscriptView(transcriptObj.getTranscript());
 
                 audioRecord.stop();
 
