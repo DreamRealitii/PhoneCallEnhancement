@@ -33,8 +33,8 @@ public class WebSocketClient {
 
     public WebSocketClient(File cache) {
         this.cache = cache;
+        connected = false;
         createWebSocketClient();
-        connected = true;
         decodedBytes = null;
         receivedInformation = new ArrayDeque<>();
         username = getDeviceName();
@@ -119,6 +119,7 @@ public class WebSocketClient {
         try {
             // Connect to local host
             uri = new URI("ws://mc.alanyeung.co:16385/ws/channel-1");
+            connected = true;
         }
         catch (URISyntaxException e) {
             e.printStackTrace();
