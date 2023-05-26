@@ -10,7 +10,7 @@ public class VolumeControl {
 
     private static final double DESIRED_VOLUME = 0.2 * Short.MAX_VALUE;
     // Audio below this loudness threshold will be silenced.
-    private static final double MINIMUM_VOLUME = 0.001 * Short.MAX_VALUE;
+    private static final double MINIMUM_VOLUME = 0.01 * Short.MAX_VALUE;
     private static final int SMOOTHNESS = 5;
     // The volumes calculated from the previous runs of NormalizeVolume().
     private static final List<Double> previousVolumes = initialList();
@@ -26,6 +26,8 @@ public class VolumeControl {
         double previousVolume = GetPreviousAverageVolume();
         if (averageVolume < MINIMUM_VOLUME)
             averageVolume = 0;
+        if (previousVolume < MINIMUM_VOLUME)
+            previousVolume = 0;
 
         // Don't boost silence or face arithmetic wrath.
         double beginMultiplier = 0, endMultiplier = 0;
@@ -37,6 +39,9 @@ public class VolumeControl {
             beginMultiplier = (double)Short.MAX_VALUE / maxVolume[0];
         if (maxVolume[0] * endMultiplier > Short.MAX_VALUE)
             endMultiplier = (double)Short.MAX_VALUE / maxVolume[0];
+
+        // Smoothing
+        endMultiplier = beginMultiplier + ((endMultiplier - beginMultiplier) / SMOOTHNESS);
 
         if (enabled)
             AdjustVolume(buffer, beginMultiplier, endMultiplier);
