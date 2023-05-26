@@ -34,6 +34,7 @@ import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Timer;
@@ -125,6 +126,13 @@ public class ChatActivity extends AppCompatActivity {
 
         volumeSize = binding.layoutVolume.getLayoutParams().width;
 
+        messages = new ArrayList<>();
+        adapter = new ChatAdapter(
+                "User",
+                messages
+        );
+        binding.chatRecyclerView.setAdapter(adapter);
+
         microphoneReader = new MicrophoneReader();
 
         referenceFilepath = getApplicationContext().getFileStreamPath("reference.wav").getAbsolutePath();
@@ -141,6 +149,9 @@ public class ChatActivity extends AppCompatActivity {
         checkInternetPermission();
         checkWriteStoragePermission();
 
+        initKoala();
+        initCheetah();
+
         setVolumeControlStream(AudioManager.STREAM_MUSIC);
         setupVisualizerFxAndUI();
 
@@ -152,6 +163,8 @@ public class ChatActivity extends AppCompatActivity {
 
         StartRecord();
     }
+
+
 
 
     @Override
@@ -312,6 +325,10 @@ public class ChatActivity extends AppCompatActivity {
                 String[] sentences = binding.inputMessage.getText().toString().split("\\.", 2);
                 if (sentences.length > 1) {
                     // Make a new message bubble
+                    ChatMessage message = new ChatMessage();
+                    message.message = sentences[0];
+                    message.sender = "User";
+                    messages.add(message);
                     // set the remaining part
                     binding.inputMessage.setText(sentences[1]);
                 }
