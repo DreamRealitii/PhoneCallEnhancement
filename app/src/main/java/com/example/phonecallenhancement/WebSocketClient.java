@@ -171,7 +171,7 @@ public class WebSocketClient {
                     //Log.d(TAG, currUnix + "ms");
                     Log.d(TAG, "Curr delay:" + (currUnix - timeStamp) + "ms");
                     String type = s.split(">")[2];
-                    if(type.equals("A")) {
+                    if(type.equals("A")  && !s.split(">")[0].equals(username)) {
                         String b64Data = s.split(">")[3];
                         //Log.i("WebSocket", b64Data);
                         decodedBytes = Base64.getDecoder().decode(b64Data.getBytes());
