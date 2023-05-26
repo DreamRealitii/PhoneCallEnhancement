@@ -171,7 +171,9 @@ public class WebSocketClient {
                             e.printStackTrace();
                         }
                     }else{
-                        incomingString.add(s.split(">")[3]);
+                        if(!s.split(">")[0].equals(username)) {
+                            incomingString.add(s.split(">")[3]);
+                        }
                         Log.d(TAG, "TEXT RCV" +  s.split(">")[3]);
                     }
                 } catch (Exception e) {
