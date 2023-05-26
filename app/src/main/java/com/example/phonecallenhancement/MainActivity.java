@@ -329,14 +329,6 @@ public class MainActivity extends AppCompatActivity {
         runOnUiThread(() -> {
             if (transcript.length() != 0) {
                 transcriptText.append(transcript);
-
-                final int scrollAmount = transcriptText.getLayout().getLineTop(transcriptText.getLineCount()) -
-                        transcriptText.getHeight() +
-                        transcriptText.getLineHeight();
-
-                if (scrollAmount > 0) {
-                    transcriptText.scrollTo(0, scrollAmount);
-                }
             }
         });
     }
