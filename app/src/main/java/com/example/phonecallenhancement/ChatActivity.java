@@ -20,6 +20,7 @@ import android.os.Process;
 import android.util.Base64;
 import android.util.Log;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
@@ -91,10 +92,7 @@ public class ChatActivity extends AppCompatActivity {
     // nb2: Spent 15+ hrs trying to make google speech-to-text work but it's impossible to do...
 
     public Koala koala;
-    private static final String LEOPARD_MODEL_FILE = "leopard_params.pv";
     private static final String CHEETAH_MODEL_FILE = "cheetah_params.pv";
-
-    private Leopard leopard;
     private Cheetah cheetah;
     private int bufferSize;
     private BlockingQueue<short[]> audioDataQueue = new LinkedBlockingQueue<short[]>();;
@@ -124,6 +122,8 @@ public class ChatActivity extends AppCompatActivity {
         binding = ActivityChatBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
+        cache = getCacheDir();
+
         volumeSize = binding.layoutVolume.getLayoutParams().width;
 
         messages = new ArrayList<>();
@@ -137,13 +137,6 @@ public class ChatActivity extends AppCompatActivity {
 
         referenceFilepath = getApplicationContext().getFileStreamPath("reference.wav").getAbsolutePath();
         enhancedFilepath = getApplicationContext().getFileStreamPath("enhanced.wav").getAbsolutePath();
-        referenceMediaPlayer = new MediaPlayer();
-        enhancedMediaPlayer = new MediaPlayer();
-        // Disable looping
-        referenceMediaPlayer.setLooping(false);
-        enhancedMediaPlayer.setLooping(false);
-        referenceMediaPlayer.setVolume(0, 0);
-        enhancedMediaPlayer.setVolume(1, 1);
 
         checkRecordAudioPermission();
         checkInternetPermission();
@@ -160,8 +153,6 @@ public class ChatActivity extends AppCompatActivity {
         if(webSocket == null) {
             webSocket = new WebSocketClient(cache);
         }
-
-        StartRecord();
     }
 
 
@@ -180,7 +171,6 @@ public class ChatActivity extends AppCompatActivity {
             enhancedMediaPlayer.release();
         }
         koala.delete();
-        leopard.delete();
         cheetah.delete();
     }
 
@@ -217,7 +207,7 @@ public class ChatActivity extends AppCompatActivity {
 
     //---------LISTENERS--------------
 
-    public void StartRecord() {
+    public void onClickRecord(View view) {
         try {
             if (hasRecordPermission()) {
                 startRecording();
@@ -274,28 +264,6 @@ public class ChatActivity extends AppCompatActivity {
         }
     }
 
-    private void initLeopard() {
-        try {
-            leopard = new Leopard.Builder()
-                    .setAccessKey(ACCESS_KEY)
-                    .setModelPath(LEOPARD_MODEL_FILE)
-                    .setEnableAutomaticPunctuation(true)
-                    .build(getApplicationContext());
-        } catch (LeopardInvalidArgumentException e) {
-            onKoalaInitError(String.format("%s\nEnsure your AccessKey '%s' is valid", e.getMessage(), ACCESS_KEY));
-        } catch (LeopardActivationException e) {
-            onKoalaInitError("AccessKey activation error");
-        } catch (LeopardActivationLimitException e) {
-            onKoalaInitError("AccessKey reached its device limit");
-        } catch (LeopardActivationRefusedException e) {
-            onKoalaInitError("AccessKey refused");
-        } catch (LeopardActivationThrottledException e) {
-            onKoalaInitError("AccessKey has been throttled");
-        } catch (LeopardException e) {
-            onKoalaInitError("Failed to initialize Leopard " + e.getMessage());
-        }
-    }
-
     private void initCheetah() {
         try {
             cheetah = new Cheetah.Builder()
@@ -331,14 +299,6 @@ public class ChatActivity extends AppCompatActivity {
                     messages.add(message);
                     // set the remaining part
                     binding.inputMessage.setText(sentences[1]);
-                }
-
-                final int scrollAmount = binding.inputMessage.getLayout().getLineTop(binding.inputMessage.getLineCount()) -
-                        binding.inputMessage.getHeight() +
-                        binding.inputMessage.getLineHeight();
-
-                if (scrollAmount > 0) {
-                    binding.inputMessage.scrollTo(0, scrollAmount);
                 }
             }
         });
@@ -414,20 +374,13 @@ public class ChatActivity extends AppCompatActivity {
 
         Timer timer = new Timer();
         long interval = 100; // 1/10 second in milliseconds
-
+        ViewGroup.LayoutParams param = binding.layoutVolume.getLayoutParams();
         timer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
                 // This code will be executed every 1/20 second
                 try {
-                    short[] data = getAudioData();
-                    float val = data[data.length / 2] / 2000;
-                    val = val > 2000 ? 1 : (float) (0.5 + val * 0.5);
-                    int size = (int) (val * volumeSize);
-
-                    binding.layoutVolume.getLayoutParams().width = size;
-                    binding.layoutVolume.getLayoutParams().height = size;
-
+                    binding.layoutVolume.updateVisualizer(getAudioData());
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }

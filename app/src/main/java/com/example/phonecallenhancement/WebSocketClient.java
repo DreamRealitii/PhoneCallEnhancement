@@ -29,11 +29,12 @@ public class WebSocketClient {
 
     public WebSocketClient(File cache) {
         this.cache = cache;
+        connected = false;
         createWebSocketClient();
-        connected = true;
         decodedBytes = null;
         receivedInformation = new ArrayDeque<>();
-        username = UUID.randomUUID().toString();
+        username = getDeviceName();
+        incomingString = new ArrayDeque<>();
     }
 
     public void toggle() {
@@ -41,7 +42,7 @@ public class WebSocketClient {
     }
 
     public void sendAudio(String s) {
-        if(!connected) {
+        if(connected) {
             File file = new File(s);
             StringBuilder encodedString = new StringBuilder();
             try {
@@ -111,6 +112,7 @@ public class WebSocketClient {
         try {
             // Connect to local host
             uri = new URI("ws://mc.alanyeung.co:16385/ws/channel-1");
+            connected = true;
         }
         catch (URISyntaxException e) {
             e.printStackTrace();
@@ -121,21 +123,31 @@ public class WebSocketClient {
             @Override
             public void onOpen() {
                 Log.d(TAG, "Session is starting");
-                webSocketClient.send(getDeviceName() + ">" + (System.currentTimeMillis()) + ">T>" +"Hello World!");
+                webSocketClient.send(username + ">" + (System.currentTimeMillis()) + ">T>" +"Hello World!");
 
             }
 
             @Override
             public void onTextReceived(String s) {
+                MediaPlayer mp = new MediaPlayer();
+                mp.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+                    public void onCompletion(MediaPlayer mMediaPlayer) {
+                        //mMediaPlayer.release();
+//                        Log.d("T", "DONE");
+                        mp.stop();
+                        mp.reset();
+                        mp.release();
+                    }
+                });
                 //Log.d(TAG, "Message received " + s);
                 //Toast.makeText(this, "Audio stop command interrupted\n", Toast.LENGTH_SHORT).show();
                 try {
                     long timeStamp = Long.parseLong(s.split(">")[1]);
                     long currUnix = System.currentTimeMillis();
                     //Log.d(TAG, currUnix + "ms");
-                    Log.d(TAG, "Curr delay:" + (currUnix - timeStamp) + "ms");
+//                    Log.d(TAG, "Curr delay:" + (currUnix - timeStamp) + "ms");
                     String type = s.split(">")[2];
-                    if(type.equals("A")) {
+                    if(type.equals("A")  && !s.split(">")[0].equals(username)) {
                         String b64Data = s.split(">")[3];
                         //Log.i("WebSocket", b64Data);
                         decodedBytes = Base64.getDecoder().decode(b64Data.getBytes());
@@ -151,28 +163,21 @@ public class WebSocketClient {
                         fileoutputstream.write(decodedBytes);
                         fileoutputstream.close();
 
-                        MediaPlayer mp = new MediaPlayer();
                         try {
                             mp.setDataSource(outputFile.toString());
                             mp.prepare();
                             mp.start();
                         } catch (Exception e) {
-                            //e.printStackTrace();
+                            e.printStackTrace();
                         }
-                        mp.wait();
-                        mp.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-                            public void onCompletion(MediaPlayer mMediaPlayer) {
-                                mMediaPlayer.release();
-                            }
-                        });
                     }else{
-                        incomingString.add(s.split(">")[3]);
+                        if(!s.split(">")[0].equals(username)) {
+                            incomingString.add(s.split(">")[3]);
+                        }
                         Log.d(TAG, "TEXT RCV" +  s.split(">")[3]);
                     }
-                    Log.i("WebSocket", "Done");
                 } catch (Exception e) {
-                    // TODO: handle exception
-                    //e.printStackTrace();
+                    e.printStackTrace();
                 }
             }
 
@@ -203,6 +208,11 @@ public class WebSocketClient {
         webSocketClient.setReadTimeout(60000);
         webSocketClient.enableAutomaticReconnection(5000);
         webSocketClient.connect();
+        //connected = true;
+    }
+
+    public void close() {
+        webSocketClient.close();
     }
 
     public static byte[] convertWavToByteArray(byte[] wavData) {

@@ -104,10 +104,7 @@ public class MainActivity extends AppCompatActivity {
     // nb2: Spent 15+ hrs trying to make google speech-to-text work but it's impossible to do...
 
     public Koala koala;
-    private static final String LEOPARD_MODEL_FILE = "leopard_params.pv";
     private static final String CHEETAH_MODEL_FILE = "cheetah_params.pv";
-
-    private Leopard leopard;
     private Cheetah cheetah;
     private int bufferSize;
     private BlockingQueue<short[]> audioDataQueue = new LinkedBlockingQueue<>();;
@@ -116,8 +113,6 @@ public class MainActivity extends AppCompatActivity {
     }
     private String referenceFilepath;
     private String enhancedFilepath;
-    private MediaPlayer referenceMediaPlayer;
-    private MediaPlayer enhancedMediaPlayer;
     private MicrophoneReader microphoneReader;
     private final AtomicBoolean stop = new AtomicBoolean(false);
     private File cache;
@@ -129,12 +124,10 @@ public class MainActivity extends AppCompatActivity {
 
         cache = getCacheDir();
         recordButton = this.findViewById(R.id.recordButton);
-        connectButton = this.findViewById(R.id.connectButton);
         beforeProcessWave = this.findViewById(R.id.beforeWave);
         afterProcessWave = this.findViewById(R.id.afterWave);
         recordedText = this.findViewById(R.id.recordedText);
         transcriptText = this.findViewById(R.id.transcriptContentTv);
-        switchModelbtn = this.findViewById(R.id.modelButton);
 
         actionBar = getSupportActionBar();
         actionBar.setTitle("Speech Enhancement");
@@ -145,14 +138,10 @@ public class MainActivity extends AppCompatActivity {
         initKoala();
         Log.d(TAG,"koala rate: " + koala.getSampleRate()); //16000 hz
         Log.d(TAG,"Koala buffer: " + koala.getFrameLength());  // 256
-        initLeopard();
-        Log.d(TAG, "Leopard version: " + leopard.getVersion());
         initCheetah();
         Log.d(TAG, "Cheetah version: " + cheetah.getVersion());
         Log.d(TAG,"Cheetah rate: " + cheetah.getSampleRate()); //16000 hz
         Log.d(TAG,"Cheetah buffer: " + cheetah.getFrameLength());  // 512
-
-
 
         microphoneReader = new MicrophoneReader();
 
@@ -160,13 +149,6 @@ public class MainActivity extends AppCompatActivity {
         Log.d(TAG, "referenceFilepath: " + referenceFilepath);
         enhancedFilepath = getApplicationContext().getFileStreamPath("enhanced.wav").getAbsolutePath();
         Log.d(TAG, "enhancedFilepath: " + enhancedFilepath);
-        referenceMediaPlayer = new MediaPlayer();
-        enhancedMediaPlayer = new MediaPlayer();
-        // Disable looping
-        referenceMediaPlayer.setLooping(false);
-        enhancedMediaPlayer.setLooping(false);
-        referenceMediaPlayer.setVolume(0, 0);
-        enhancedMediaPlayer.setVolume(1, 1);
 
         setVolumeControlStream(AudioManager.STREAM_MUSIC);
         checkRecordAudioPermission();
@@ -187,15 +169,9 @@ public class MainActivity extends AppCompatActivity {
         if (isFinishing() && audioRecord != null) {
             stopRecording();
         }
-        if (referenceMediaPlayer != null) {
-            referenceMediaPlayer.release();
-        }
-        if (enhancedMediaPlayer != null) {
-            enhancedMediaPlayer.release();
-        }
         koala.delete();
-        leopard.delete();
         cheetah.delete();
+        webSocket.close();
     }
 
     @Override
@@ -230,42 +206,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     //---------LISTENERS--------------
-    public void onClickConnect(View view) {
-        Toast.makeText(this, "Connecting to websocket", Toast.LENGTH_SHORT).show();
-        checkWriteStoragePermission();
-
-        if(webSocket == null) {
-            webSocket = new WebSocketClient(cache);
-        }
-
-        if (connectButton.isChecked()) {
-            webSocket.toggle();
-        } else {
-            webSocket.toggle();
-        }
-
-    }
-
-    public void onClickChangeSTT(View view) {
-        if(!switchModelbtn.isChecked()) {
-            Toast.makeText(this, "Switched to Leopard", Toast.LENGTH_SHORT).show();
-        }else{
-            Toast.makeText(this, "Switched to Cheetah", Toast.LENGTH_SHORT).show();
-        }
-    }
 
     public void onClickRecord(View view) {
         try {
             if (recordButton.isChecked()) {
                 stop.set(false);
 
-                // Stopping all speaker voice
-                if (referenceMediaPlayer.isPlaying()) {
-                    referenceMediaPlayer.stop();
-                }
-                if (enhancedMediaPlayer.isPlaying()) {
-                    enhancedMediaPlayer.stop();
-                }
 
                 if (hasRecordPermission()) {
                     startRecording();
@@ -278,27 +224,13 @@ public class MainActivity extends AppCompatActivity {
                 stop.set(true);
                 microphoneReader.stop();
 
-                resetMediaPlayer(referenceMediaPlayer, referenceFilepath);
-                resetMediaPlayer(enhancedMediaPlayer, enhancedFilepath);
-
+                // Send audio to server
                 if(webSocket != null) {
-                    webSocket.sendAudio(referenceFilepath);
+                    webSocket.sendAudio(enhancedFilepath);
                 }
-
-                if (!switchModelbtn.isChecked()) {
-                    LeopardTranscript transcript = leopard.processFile(referenceFilepath);
-                    transcriptText.setText(transcript.getTranscriptString());
-                    // Log.d(TAG, "transcript: " + transcript.getTranscriptString());
-                }
-
-                // play on speaker
-                // and disable looping playback
-                referenceMediaPlayer.start();
-                enhancedMediaPlayer.start();
             }
         } catch (Exception e) {
             e.printStackTrace();
-            // Toast.makeText(this, "Audio stop command interrupted\n", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -307,10 +239,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void onKoalaInitError(String error) {
-        TextView errorMessage = findViewById(R.id.errorMessage);
-        errorMessage.setText(error);
-        errorMessage.setVisibility(View.VISIBLE);
-
+        Toast.makeText(this, error, Toast.LENGTH_SHORT).show();
         recordButton.setEnabled(false);
         recordButton.setError("error");
     }
@@ -350,27 +279,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void initLeopard() {
-        try {
-            leopard = new Leopard.Builder()
-                    .setAccessKey(ACCESS_KEY)
-                    .setModelPath(LEOPARD_MODEL_FILE)
-                    .setEnableAutomaticPunctuation(true)
-                    .build(getApplicationContext());
-        } catch (LeopardInvalidArgumentException e) {
-            onKoalaInitError(String.format("%s\nEnsure your AccessKey '%s' is valid", e.getMessage(), ACCESS_KEY));
-        } catch (LeopardActivationException e) {
-            onKoalaInitError("AccessKey activation error");
-        } catch (LeopardActivationLimitException e) {
-            onKoalaInitError("AccessKey reached its device limit");
-        } catch (LeopardActivationRefusedException e) {
-            onKoalaInitError("AccessKey refused");
-        } catch (LeopardActivationThrottledException e) {
-            onKoalaInitError("AccessKey has been throttled");
-        } catch (LeopardException e) {
-            onKoalaInitError("Failed to initialize Leopard " + e.getMessage());
-        }
-    }
 
     private void initCheetah() {
         try {
@@ -398,14 +306,6 @@ public class MainActivity extends AppCompatActivity {
         runOnUiThread(() -> {
             if (transcript.length() != 0) {
                 transcriptText.append(transcript);
-
-                final int scrollAmount = transcriptText.getLayout().getLineTop(transcriptText.getLineCount()) -
-                        transcriptText.getHeight() +
-                        transcriptText.getLineHeight();
-
-                if (scrollAmount > 0) {
-                    transcriptText.scrollTo(0, scrollAmount);
-                }
             }
         });
     }
@@ -477,7 +377,7 @@ public class MainActivity extends AppCompatActivity {
     private void setupVisualizerFxAndUI() {
         // Create a VisualizerView (defined below), which will render the simplified audio
         // wave form to a Canvas.
-
+        //Log.d("MAIN", "Started!");
         Timer timer = new Timer();
         long interval = 50; // 1/20 second in milliseconds
 
@@ -488,24 +388,45 @@ public class MainActivity extends AppCompatActivity {
                 try {
                     // outgoing wave
                     beforeProcessWave.updateVisualizer(getAudioData());
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }, 0, interval);
 
+        Timer timer1 = new Timer();
+        long interval1 = 50; // 1/20 second in milliseconds
+
+        timer1.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                try {
+                    if(webSocket != null) {
+                        String s = webSocket.getNextTranscript();
+                        if(s != null) {
+                            updateTranscriptView(s + "\n");
+                        }
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                try {
                     // incoming wave
                     if (webSocket == null) {
                         afterProcessWave.updateVisualizer((short[]) null);
                     } else {
                         byte[] data = webSocket.getAudio();
                         if(data!= null) {
-                            //Log.d(TAG, "websocket data: " + Arrays.toString(data));
                             afterProcessWave.updateVisualizer(data);
+                        } else {
+                            afterProcessWave.updateVisualizer((short[]) null);
                         }
                     }
-
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
             }
-        }, 0, interval);
-
+        }, 0, interval1);
     }
 
     private void resetMediaPlayer(MediaPlayer mediaPlayer, String audioFile) throws IOException {
@@ -613,24 +534,25 @@ public class MainActivity extends AppCompatActivity {
                         }
 
                         // Copy the buffered contents to the cheetah buffer
-                        if (switchModelbtn.isChecked()) {
-                            int offset = writeCheetah ? frameBufferEnhanced.length: 0;
-                            System.arraycopy(frameBufferEnhanced, 0, cheetahFrameBuffer, offset, frameBufferEnhanced.length);
-                        }
+                        int offset = writeCheetah ? frameBufferEnhanced.length: 0;
+                        System.arraycopy(frameBufferEnhanced, 0, cheetahFrameBuffer, offset, frameBufferEnhanced.length);
 
-                        if (switchModelbtn.isChecked() && writeCheetah) {
+                        if (writeCheetah) {
                             CheetahTranscript transcriptObj = cheetah.process(cheetahFrameBuffer);
                             String newString = transcriptObj.getTranscript();
+
                             if (!newString.equals("")) {
+                                webSocket.sendTranscript(newString);
                                 updateTranscriptView(newString);
-                                Log.d("Cheetah", newString);
                             }
 
                             if (transcriptObj.getIsEndpoint()) {
                                 transcriptObj = cheetah.flush();
+                                webSocket.sendTranscript(transcriptObj.getTranscript() + " ");
                                 updateTranscriptView(transcriptObj.getTranscript() + " ");
                             }
                         }
+
                         writeCheetah = !writeCheetah;
                     }
 
@@ -642,10 +564,9 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
 
-                if (switchModelbtn.isChecked()) {
-                    final CheetahTranscript transcriptObj = cheetah.flush();
-                    updateTranscriptView(transcriptObj.getTranscript());
-                }
+                final CheetahTranscript transcriptObj = cheetah.flush();
+                webSocket.sendTranscript(transcriptObj.getTranscript());
+                updateTranscriptView(transcriptObj.getTranscript());
 
                 audioRecord.stop();
 

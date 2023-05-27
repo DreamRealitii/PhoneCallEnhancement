@@ -80,6 +80,23 @@
     </LinearLayout>
 
     <ToggleButton
+        android:id="@+id/toggleButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="1dp"
+        android:checked="true"
+        android:onClick="onClickVolumeButton"
+        android:text="Volume"
+        android:textOff="No Gain"
+        android:textOn="AutoGain"
+        app:layout_constraintBottom_toTopOf="@+id/guiddelineBottom"
+        app:layout_constraintEnd_toStartOf="@+id/recordButton"
+
+        app:layout_constraintHorizontal_bias="0.508"
+        app:layout_constraintStart_toStartOf="@+id/guidelineStart"
+        app:layout_constraintTop_toBottomOf="@+id/transcriptLayout" />
+
+    <ToggleButton
         android:id="@+id/recordButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -88,21 +105,10 @@
         android:textOn="Stop"
         app:layout_constraintBottom_toTopOf="@+id/guiddelineBottom"
         app:layout_constraintEnd_toStartOf="@+id/guidelineEnd"
+        app:layout_constraintHorizontal_bias="0.762"
         app:layout_constraintStart_toStartOf="@+id/guidelineStart"
-        app:layout_constraintTop_toBottomOf="@id/guiddelineMid2" />
-
-    <ToggleButton
-        android:id="@+id/connectButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:enabled="false"
-        android:onClick="onClickConnect"
-        android:textOff="Connect"
-        android:textOn="Disconnect"
-        app:layout_constraintBottom_toTopOf="@+id/guiddelineBottom"
-        app:layout_constraintEnd_toStartOf="@+id/guidelineEnd"
-        app:layout_constraintStart_toEndOf="@+id/recordButton"
-        app:layout_constraintTop_toBottomOf="@id/guiddelineMid2" />
+        app:layout_constraintTop_toBottomOf="@id/guiddelineMid2"
+        app:layout_constraintVertical_bias="0.671" />
 
     <TextView
         android:id="@+id/recordedText"
@@ -114,19 +120,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
-    <TextView
-        android:id="@+id/errorMessage"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:background="@color/design_default_color_error"
-        android:gravity="center"
-        android:padding="10sp"
-        android:text="TextView"
-        android:textSize="18sp"
-        android:visibility="invisible"
-        app:layout_constraintBottom_toTopOf="@+id/guiddelineBottom"
-        app:layout_constraintEnd_toStartOf="@+id/guidelineEnd"
-        app:layout_constraintStart_toStartOf="@+id/guidelineStart" />
+
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/guidelineStart"
@@ -161,7 +155,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        app:layout_constraintGuide_percent="0.71" />
+        app:layout_constraintGuide_percent="0.85" />
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/guiddelineTop"
@@ -170,34 +164,7 @@
         android:orientation="horizontal"
         app:layout_constraintGuide_percent="0.05" />
 
-    <ToggleButton
-        android:id="@+id/modelButton"
-        android:layout_width="wrap_content"
-        android:layout_height="48dp"
-        android:onClick="onClickChangeSTT"
-        android:text="ModelButton"
-        android:textOff="Leopard"
-        android:textOn="Cheetah"
-        app:layout_constraintBottom_toTopOf="@+id/guiddelineBottom"
-        app:layout_constraintEnd_toStartOf="@+id/recordButton"
-        app:layout_constraintStart_toStartOf="@+id/guidelineStart"
-        app:layout_constraintTop_toTopOf="@+id/guiddelineMid2" />
 
-    <ToggleButton
-        android:id="@+id/toggleButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:checked="true"
-        android:onClick="onClickVolumeButton"
-        android:text="Volume"
-        android:textOff="No Gain"
-        android:textOn="AutoGain"
-        app:layout_constraintBottom_toTopOf="@+id/guiddelineBottom"
-        app:layout_constraintEnd_toStartOf="@+id/guidelineEnd"
-        app:layout_constraintHorizontal_bias="0.1"
-        app:layout_constraintStart_toStartOf="@+id/guidelineStart"
-        app:layout_constraintTop_toTopOf="@+id/guiddelineMid2"
-        app:layout_constraintVertical_bias="0.100000024" />
 
     <!--    <LinearLayout-->
     <!--        android:id="@+id/buttons"-->
