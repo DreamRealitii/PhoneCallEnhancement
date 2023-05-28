@@ -8,8 +8,12 @@ import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.drawable.shapes.OvalShape;
 import android.media.audiofx.Visualizer;
+import android.os.Debug;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.View;
+
+import Sound.VolumeControl;
 
 /**
  * A simple class that draws dialates the circle on input
@@ -17,6 +21,7 @@ import android.view.View;
 public class BubbleView extends View {
     private static final String TAG = "Debugging";
     private int maxSize, size;
+
     private final RectF oval = new RectF();
     private Paint paint;
 
@@ -38,9 +43,12 @@ public class BubbleView extends View {
         if (shorts == null) {
             return;
         }
-        int val = shorts[shorts.length / 2] / 2000;
-        val = val > 1 ? 1 : (val + 1) / 2;
-        size = val * maxSize;
+        float sum = 0;
+        for (short num : shorts) {
+            sum += num;
+        }
+        float avg = sum / shorts.length;
+        size = (int) (maxSize * avg / Short.MAX_VALUE);
         invalidate();
     }
 

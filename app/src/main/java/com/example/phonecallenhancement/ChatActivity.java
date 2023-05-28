@@ -110,6 +110,7 @@ public class ChatActivity extends AppCompatActivity {
     private File cache;
 
     private float volumeSize;
+    StringBuilder stringBuilder;
 
     // CONSTANTS
     public static int MY_PERMISSIONS_RECORD_AUDIO = 1;
@@ -134,6 +135,7 @@ public class ChatActivity extends AppCompatActivity {
         binding.chatRecyclerView.setAdapter(adapter);
 
         microphoneReader = new MicrophoneReader();
+        stringBuilder = new StringBuilder();
 
         referenceFilepath = getApplicationContext().getFileStreamPath("reference.wav").getAbsolutePath();
         enhancedFilepath = getApplicationContext().getFileStreamPath("enhanced.wav").getAbsolutePath();
@@ -288,18 +290,20 @@ public class ChatActivity extends AppCompatActivity {
 
     private void updateTranscriptView(String transcript) {
         runOnUiThread(() -> {
-            if (transcript.length() != 0) {
-                binding.inputMessage.append(transcript);
-                String[] sentences = binding.inputMessage.getText().toString().split("\\.", 2);
-                if (sentences.length > 1) {
-                    // Make a new message bubble
-                    ChatMessage message = new ChatMessage();
-                    message.message = sentences[0];
-                    message.sender = "User";
-                    messages.add(message);
-                    // set the remaining part
-                    binding.inputMessage.setText(sentences[1]);
-                }
+            stringBuilder.append(transcript);
+            if (stringBuilder.lastIndexOf("\\.") != -1) {
+                String[] sentences = stringBuilder.toString().split("\\.", 2);
+                // Make a new message bubble
+                ChatMessage message = new ChatMessage();
+                message.message = sentences[0];
+                message.sender = "User";
+                messages.add(message);
+                // set the remaining part
+                binding.inputMessage.setText(sentences[1]);
+                adapter.notifyItemInserted(messages.size());
+            }
+            else {
+                binding.inputMessage.setText(stringBuilder.toString());
             }
         });
     }
@@ -374,7 +378,6 @@ public class ChatActivity extends AppCompatActivity {
 
         Timer timer = new Timer();
         long interval = 100; // 1/10 second in milliseconds
-        ViewGroup.LayoutParams param = binding.layoutVolume.getLayoutParams();
         timer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
