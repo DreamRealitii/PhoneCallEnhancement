@@ -430,9 +430,10 @@ public class MainActivity extends AppCompatActivity {
                     if (webSocket == null) {
                         afterProcessWave.updateVisualizer((short[]) null);
                     } else {
-                        byte[] data = webSocket.getAudio();
+                        //byte[] data = webSocket.getAudio();
+                        byte[] data = null;
                         if(data!= null) {
-                            afterProcessWave.updateVisualizer(data);
+                            //afterProcessWave.updateVisualizer(data);
                         } else {
                             afterProcessWave.updateVisualizer((short[]) null);
                         }
