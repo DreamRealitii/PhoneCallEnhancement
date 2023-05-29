@@ -186,7 +186,7 @@
         android:id="@+id/toggleButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:checked="true"
+        android:checked="false"
         android:onClick="onClickVolumeButton"
         android:text="Volume"
         android:textOff="No Gain"
