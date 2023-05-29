@@ -1,5 +1,7 @@
 package com.example.phonecallenhancement;
 
+import static android.util.Base64.URL_SAFE;
+
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
@@ -9,12 +11,16 @@ import androidx.core.content.res.ResourcesCompat;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.pm.PackageManager;
+import android.media.AudioAttributes;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioRecord;
+import android.media.MediaPlayer;
 import android.media.MediaRecorder;
 import android.os.Bundle;
+import android.os.Debug;
 import android.os.Process;
+import android.util.Base64;
 import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
@@ -24,9 +30,12 @@ import android.widget.ToggleButton;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.io.Reader;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -44,10 +53,25 @@ import ai.picovoice.koala.KoalaActivationRefusedException;
 import ai.picovoice.koala.KoalaActivationThrottledException;
 import ai.picovoice.koala.KoalaException;
 import ai.picovoice.koala.KoalaInvalidArgumentException;
+import ai.picovoice.leopard.Leopard;
+import ai.picovoice.leopard.LeopardActivationException;
+import ai.picovoice.leopard.LeopardActivationLimitException;
+import ai.picovoice.leopard.LeopardActivationRefusedException;
+import ai.picovoice.leopard.LeopardActivationThrottledException;
+import ai.picovoice.leopard.LeopardException;
+import ai.picovoice.leopard.LeopardInvalidArgumentException;
+import ai.picovoice.leopard.LeopardTranscript;
 import ai.picovoice.cheetah.*;
 
 
 public class MainActivity extends AppCompatActivity {
+
+    // TODO (Walkie-Talkie protocol):
+    //  1) Get recording audio file from mic DONE
+    //  2) send it over websocket DONE
+    //  3) receive back reply and decode the data of Stringbase64Data DONE?
+    //  4) Got audio file, "enhance" it + transcript
+    //  5) Repeat step 1
 
     // CONSTANTS
     public static int MY_PERMISSIONS_RECORD_AUDIO = 1;
@@ -132,7 +156,7 @@ public class MainActivity extends AppCompatActivity {
         Log.d(TAG, "enhancedFilepath: " + enhancedFilepath);
 
         setVolumeControlStream(AudioManager.STREAM_MUSIC);
-        requestRecordPermission();
+        checkRecordAudioPermission();
         checkInternetPermission();
         setupVisualizerFxAndUI();
 
@@ -213,7 +237,7 @@ public class MainActivity extends AppCompatActivity {
                     startRecording();
                     microphoneReader.start();
                 } else {
-                    requestRecordPermission();
+                    checkRecordAudioPermission();
                 }
 
             } else {
@@ -245,9 +269,21 @@ public class MainActivity extends AppCompatActivity {
 
     //--------HELPERS----------
 
-    /**
-     * Initialize Koala (Audio supressor)
-     */
+    private String wavToBase64(String path) {
+
+        byte[] bytes = new byte[0];
+
+        try {
+            bytes = Files.readAllBytes(Paths.get(path));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        String encoded = Base64.encodeToString(bytes, URL_SAFE);
+
+        return encoded;
+    }
+
     private void initKoala() {
         try {
             koala = new Koala.Builder().setAccessKey(ACCESS_KEY).build(getApplicationContext());
@@ -266,9 +302,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    /**
-     * Initialize Cheetah (Real-time speech-to-text)
-     */
+
     private void initCheetah() {
         try {
             cheetah = new Cheetah.Builder()
@@ -291,10 +325,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    /**
-     * Update the transcript TextView on UI
-     * @param transcript transcript to display
-     */
     private void updateTranscriptView(String transcript) {
         runOnUiThread(() -> {
             if (transcript.length() != 0) {
@@ -303,36 +333,23 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    /**
-     * Check record audio permission
-     * @return  true if have recording permission
-     */
     private boolean hasRecordPermission() {
         return ActivityCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED;
     }
 
-    /**
-     * Request record audio permission
-     */
-    private void requestRecordPermission() {
-        if (hasRecordPermission()) {return;}
-
-        // request audio permission from user
-        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, MY_PERMISSIONS_RECORD_AUDIO);
+    private void checkRecordAudioPermission() {
+        if (!hasRecordPermission()) {
+            // Permission has not been granted yet, request it from the user
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, MY_PERMISSIONS_RECORD_AUDIO);
+        }
     }
 
-    /**
-     * Check internet permission and request the permission
-     */
     private void checkInternetPermission() {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.INTERNET) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.INTERNET}, MY_PERMISSIONS_INTERNET);
         }
     }
 
-    /**
-     *  Check WebSocket permission and request the permission
-     */
     private void checkWriteStoragePermission() {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_VIDEO) != PackageManager.PERMISSION_GRANTED) {
             Log.i("WebSocket", "not granted");
@@ -342,9 +359,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    /**
-     * Start audio recording from microphone
-     */
     @SuppressLint("MissingPermission")
     public void startRecording() {
         int sampleRate = 44100;
@@ -376,9 +390,6 @@ public class MainActivity extends AppCompatActivity {
         }).start();
     }
 
-    /**
-     * Stop audio recording input
-     */
     public void stopRecording() {
         if (!stop.get()) {
             audioRecord.stop();
@@ -386,9 +397,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    /**
-     * Setup wave visualizer
-     */
     private void setupVisualizerFxAndUI() {
         // Create a VisualizerView (defined below), which will render the simplified audio
         // wave form to a Canvas.
@@ -444,10 +452,19 @@ public class MainActivity extends AppCompatActivity {
         }, 0, interval1);
     }
 
-    /**
-     * Private class that handles all the logic of handling data from microphone and
-     * feed it into Cheetah/Koala API
-     */
+    private void resetMediaPlayer(MediaPlayer mediaPlayer, String audioFile) throws IOException {
+        mediaPlayer.reset();
+        mediaPlayer.setAudioAttributes(
+                new AudioAttributes.Builder()
+                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                        .setUsage(AudioAttributes.USAGE_MEDIA)
+                        .build()
+        );
+        mediaPlayer.setDataSource(audioFile);
+        mediaPlayer.prepare();
+    }
+
+    // PRIVATE CLASS
     private class MicrophoneReader {
         private final AtomicBoolean started = new AtomicBoolean(false);
         private final AtomicBoolean stop = new AtomicBoolean(false);
@@ -457,10 +474,6 @@ public class MainActivity extends AppCompatActivity {
         private RandomAccessFile enhancedFile;
         private int totalSamplesWritten;
 
-        /**
-         * Start the STT and Sound supressor process
-         * @throws IOException exception
-         */
         void start() throws IOException {
 
             if (started.get()) {
@@ -483,11 +496,6 @@ public class MainActivity extends AppCompatActivity {
             });
         }
 
-        /**
-         * Stop all ongoing thread and wait for all of them to finish to create a .wav file output
-         * @throws InterruptedException
-         * @throws IOException
-         */
         void stop() throws InterruptedException, IOException {
             if (!started.get()) {
                 return;
@@ -509,11 +517,6 @@ public class MainActivity extends AppCompatActivity {
             stopped.set(false);
         }
 
-        /**
-         * Read audio from microphone and process it using API
-         * @throws KoalaException sound supressor exception
-         * @throws CheetahException STT exception
-         */
         @SuppressLint({"MissingPermission", "SetTextI18n", "DefaultLocale"})
         private void read() throws KoalaException, CheetahException {
             final int minBufferSize = AudioRecord.getMinBufferSize(
@@ -613,12 +616,6 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-        /**
-         * Write a frame to an output file
-         * @param outputFile a file to write to
-         * @param frame data to write to the file
-         * @throws IOException io exception
-         */
         private void writeFrame(RandomAccessFile outputFile, short[] frame) throws IOException {
             ByteBuffer byteBuf = ByteBuffer.allocate(2 * frame.length);
             byteBuf.order(ByteOrder.LITTLE_ENDIAN);
@@ -629,15 +626,6 @@ public class MainActivity extends AppCompatActivity {
             outputFile.write(byteBuf.array());
         }
 
-        /**
-         * Write .wav header to an output file
-         * @param outputFile a file to write to
-         * @param channelCount number of channel
-         * @param bitDepth depth of bit
-         * @param sampleRate rate of sample
-         * @param totalSampleCount total sample number
-         * @throws IOException io exception
-         */
         private void writeWavHeader(RandomAccessFile outputFile, short channelCount, short bitDepth, int sampleRate, int totalSampleCount) throws IOException {
             ByteBuffer byteBuf = ByteBuffer.allocate(wavHeaderLength);
             byteBuf.order(ByteOrder.LITTLE_ENDIAN);
