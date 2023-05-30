@@ -62,12 +62,14 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG = "Debugging";
 
     // UI COMPONENTS
-    private ToggleButton recordButton, connectButton, switchModelbtn;
+    private ToggleButton recordButton;
     private ActionBar actionBar;
     private AudioRecord audioRecord;
     private VisualizerView beforeProcessWave, afterProcessWave;
     private TextView recordedText;
     private TextView transcriptText;
+
+    private TextView errorMessage;
 
     private WebSocketClient webSocket;
 
@@ -103,12 +105,11 @@ public class MainActivity extends AppCompatActivity {
 
         cache = getCacheDir();
         recordButton = this.findViewById(R.id.recordButton);
-        connectButton = this.findViewById(R.id.connectButton);
         beforeProcessWave = this.findViewById(R.id.beforeWave);
         afterProcessWave = this.findViewById(R.id.afterWave);
         recordedText = this.findViewById(R.id.recordedText);
         transcriptText = this.findViewById(R.id.transcriptContentTv);
-        switchModelbtn = this.findViewById(R.id.modelButton);
+        errorMessage = findViewById(R.id.errorMessage);
 
         actionBar = getSupportActionBar();
         actionBar.setTitle("Speech Enhancement");
@@ -144,6 +145,8 @@ public class MainActivity extends AppCompatActivity {
         if(webSocket == null) {
             webSocket = new WebSocketClient(cache);
         }
+
+        checkLatency();
     }
 
     @Override
@@ -188,6 +191,17 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void checkLatency() {
+        Timer timer = new Timer();
+        int interval = 100;
+        timer.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                errorMessage.setText("Ping: " + webSocket.ping() + "ms");
+            }
+        },0, interval);
+    }
+
     //---------LISTENERS--------------
     public void onClickConnect(View view) {
         Toast.makeText(this, "Connecting to websocket", Toast.LENGTH_SHORT).show();
@@ -195,12 +209,6 @@ public class MainActivity extends AppCompatActivity {
 
         if(webSocket == null) {
             webSocket = new WebSocketClient(cache);
-        }
-
-        if (connectButton.isChecked()) {
-            webSocket.toggle();
-        } else {
-            webSocket.toggle();
         }
 
     }
@@ -237,9 +245,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void onKoalaInitError(String error) {
-        TextView errorMessage = findViewById(R.id.errorMessage);
+
         errorMessage.setText(error);
-        errorMessage.setVisibility(View.VISIBLE);
 
         recordButton.setEnabled(false);
         recordButton.setError("error");
