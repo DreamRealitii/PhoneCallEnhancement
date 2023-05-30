@@ -177,7 +177,7 @@ public class WebSocketClient {
                     }else{
                         if(!s.split(">")[0].equals(username)) {
                             if(s.split(">").length > 3) {
-                                incomingString.add(s.split(">")[0] + ":" + s.split(">")[3]);
+                                incomingString.add(s.split(">")[0] + ">" + s.split(">")[3]);
                             }
                         }
                         //Log.d(TAG, "TEXT RCV" +  s.split(">")[3]);
