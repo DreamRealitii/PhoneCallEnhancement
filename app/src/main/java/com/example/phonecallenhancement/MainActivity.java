@@ -21,6 +21,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 
+import com.example.phonecallenhancement.unused.MicrophoneReader;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -83,7 +85,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String CHEETAH_MODEL_FILE = "cheetah_params.pv";
     private Cheetah cheetah;
     private int bufferSize;
-    private BlockingQueue<short[]> audioDataQueue = new LinkedBlockingQueue<short[]>();;
+    private BlockingQueue<short[]> audioDataQueue = new LinkedBlockingQueue<short[]>();
     public short[] getAudioData() throws InterruptedException {
         //Log.d("MAIN", "CALLED");
         return audioDataQueue.take();
@@ -426,16 +428,36 @@ public class MainActivity extends AppCompatActivity {
                     e.printStackTrace();
                 }
                 try {
+                    int buff = 3776;
                     // incoming wave
                     if (webSocket == null) {
                         afterProcessWave.updateVisualizer((short[]) null);
                     } else {
-                        //byte[] data = webSocket.getAudio();
-                        byte[] data = null;
-                        if(data!= null) {
-                            //afterProcessWave.updateVisualizer(data);
-                        } else {
+                        byte[] data = webSocket.getAudio();
+                        if (data == null) {
                             afterProcessWave.updateVisualizer((short[]) null);
+                            return;
+                        }
+                        int numLoops = data.length / buff;
+                        int start = 0;
+                        int end = buff - 1;
+
+
+                        for (int i = 0; i < numLoops; i++) {
+
+                            // index
+                            // 0 -> buffersize - 1
+                            // buffersize -> 2 * buffersize - 1
+                            // 2 * buffersize -> 3 * buffersize - 1
+                            // etc..
+                            if (end >= data.length || start < 0) {
+                                break;
+                            }
+                            byte[] dataCopy = Arrays.copyOfRange(data, start, end);
+                            afterProcessWave.updateVisualizer(dataCopy);
+                            start = end + 1;
+                            end += buff ;
+                            Thread.sleep(interval1);
                         }
                     }
                 } catch (Exception e) {

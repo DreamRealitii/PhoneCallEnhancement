@@ -7,6 +7,7 @@ import android.graphics.Paint;
 import android.graphics.Rect;
 import android.media.audiofx.Visualizer;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.View;
 
 /**
@@ -82,6 +83,7 @@ public class VisualizerView extends View {
             mPoints[i * 4 + 2] = mRect.width() * (i + 1) / (float) (mShorts.length - 1);
             mPoints[i * 4 + 3] = mRect.height() / 2f - mShorts[i + 1] / (float) Short.MAX_VALUE * mRect.height() / 2f;
         }
+        // Problem = canvas could not handle really big file --> need to separate byte[] in small chunks
         canvas.drawLines(mPoints, mForePaint);
     }
 }
