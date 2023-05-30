@@ -15,6 +15,7 @@ import android.media.AudioRecord;
 import android.media.MediaRecorder;
 import android.os.Bundle;
 import android.os.Process;
+import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
@@ -30,6 +31,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.BlockingQueue;
@@ -97,6 +99,11 @@ public class MainActivity extends AppCompatActivity {
     private MicrophoneReader microphoneReader;
     private final AtomicBoolean stop = new AtomicBoolean(false);
     private File cache;
+    private boolean isFirst = true;
+    private final StringBuilder stringBuilder = new StringBuilder();
+    private final LinkedList<String> usernames = new LinkedList<>();
+    private final AtomicBoolean isGenerateYourName = new AtomicBoolean(true);
+    private final AtomicBoolean isGenerateOtherName = new AtomicBoolean(true);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -109,6 +116,7 @@ public class MainActivity extends AppCompatActivity {
         afterProcessWave = this.findViewById(R.id.afterWave);
         recordedText = this.findViewById(R.id.recordedText);
         transcriptText = this.findViewById(R.id.transcriptContentTv);
+        transcriptText.setMovementMethod(new ScrollingMovementMethod());
         errorMessage = findViewById(R.id.errorMessage);
 
         actionBar = getSupportActionBar();
@@ -147,6 +155,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         checkLatency();
+        setupIncomingTranscript();
     }
 
     @Override
@@ -307,7 +316,7 @@ public class MainActivity extends AppCompatActivity {
     private void updateTranscriptView(String transcript) {
         runOnUiThread(() -> {
             if (transcript.length() != 0) {
-                transcriptText.append(transcript);
+                transcriptText.setText(transcript);
             }
         });
     }
@@ -395,6 +404,45 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+
+
+    private void setupIncomingTranscript() {
+        Timer timer = new Timer();
+        int timerInterval = 50;
+        timer.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                try {
+                    if(webSocket != null) {
+                        String s = webSocket.getNextTranscript();
+                        if (s == null) {
+                            return;
+                        }
+                        Log.d(TAG, "recv: " + s);
+                        String[] content = s.split(">");
+
+                        if (isFirst) {
+                            usernames.add(content[0]);
+                            isFirst = false;
+                        }
+
+                        if (isGenerateOtherName.get()) {
+                            stringBuilder.append("\n").append(usernames.getFirst()).append(":\n");
+                            isGenerateOtherName.set(false);
+                            isGenerateYourName.set(true);
+                        }
+
+                        stringBuilder.append(content[1]);
+
+                        updateTranscriptView(stringBuilder.toString());
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }, 0, timerInterval);
+    }
+
     /**
      * Setup wave visualizer
      */
@@ -424,16 +472,6 @@ public class MainActivity extends AppCompatActivity {
         timer1.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
-                try {
-                    if(webSocket != null) {
-                        String s = webSocket.getNextTranscript();
-                        if(s != null) {
-                            updateTranscriptView(s + "\n");
-                        }
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
                 try {
                     int buff = 3776;
                     // incoming wave
@@ -554,6 +592,13 @@ public class MainActivity extends AppCompatActivity {
 
             AudioRecord audioRecord = null;
 
+            if (isGenerateYourName.get()) {
+                stringBuilder.append("\nYou:\n");
+                isGenerateYourName.set(false);
+                isGenerateOtherName.set(true);
+            }
+
+
             short[] frameBuffer = new short[koala.getFrameLength()];
             short[] cheetahFrameBuffer = new short[cheetah.getFrameLength()];
 
@@ -593,14 +638,11 @@ public class MainActivity extends AppCompatActivity {
 
                             if (!newString.equals("")) {
                                 webSocket.sendTranscript(newString);
-                                updateTranscriptView(newString);
+                                stringBuilder.append(newString);
+                                // updateTranscriptView(newString);
                             }
 
-                            if (transcriptObj.getIsEndpoint()) {
-                                transcriptObj = cheetah.flush();
-                                webSocket.sendTranscript(transcriptObj.getTranscript() + " ");
-                                updateTranscriptView(transcriptObj.getTranscript() + " ");
-                            }
+                            updateTranscriptView(stringBuilder.toString());
                         }
 
                         writeCheetah = !writeCheetah;
@@ -616,7 +658,9 @@ public class MainActivity extends AppCompatActivity {
 
                 final CheetahTranscript transcriptObj = cheetah.flush();
                 webSocket.sendTranscript(transcriptObj.getTranscript());
-                updateTranscriptView(transcriptObj.getTranscript());
+                stringBuilder.append(transcriptObj.getTranscript());
+                updateTranscriptView(stringBuilder.toString());
+                //updateTranscriptView(transcriptObj.getTranscript());
 
                 audioRecord.stop();
 
