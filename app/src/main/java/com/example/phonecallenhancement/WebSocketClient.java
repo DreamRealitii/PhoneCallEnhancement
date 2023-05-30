@@ -27,6 +27,8 @@ public class WebSocketClient {
     private Queue<byte[]> receivedInformation;
     private String username;
 
+    private long pingv;
+
     public WebSocketClient(File cache) {
         this.cache = cache;
         connected = false;
@@ -35,6 +37,7 @@ public class WebSocketClient {
         receivedInformation = new ArrayDeque<>();
         username = getDeviceName();
         incomingString = new ArrayDeque<>();
+        pingv = 0;
     }
 
     public void toggle() {
@@ -145,6 +148,7 @@ public class WebSocketClient {
                     long timeStamp = Long.parseLong(s.split(">")[1]);
                     long currUnix = System.currentTimeMillis();
                     //Log.d(TAG, currUnix + "ms");
+                    pingv = Math.abs((currUnix - timeStamp) );
 //                    Log.d(TAG, "Curr delay:" + (currUnix - timeStamp) + "ms");
                     String type = s.split(">")[2];
                     if(type.equals("A")  && !s.split(">")[0].equals(username)) {
@@ -241,5 +245,9 @@ public class WebSocketClient {
 
     public void sendTranscript(String input){
         webSocketClient.send(username + ">" + (System.currentTimeMillis()) + ">T>"+ input);
+    }
+
+    public long ping() {
+        return pingv;
     }
 }
