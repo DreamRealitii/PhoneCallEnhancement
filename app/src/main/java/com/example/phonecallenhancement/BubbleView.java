@@ -20,7 +20,8 @@ import Sound.VolumeControl;
  */
 public class BubbleView extends View {
     private static final String TAG = "Debugging";
-    private int maxSize, size;
+    private int maxSize;
+    private float size;
 
     private final RectF oval = new RectF();
     private Paint paint;
@@ -48,7 +49,7 @@ public class BubbleView extends View {
             sum += num;
         }
         float avg = sum / shorts.length;
-        size = (int) (maxSize * avg / Short.MAX_VALUE);
+        size = maxSize * (avg / Short.MAX_VALUE + 1) / 2;
         invalidate();
     }
 

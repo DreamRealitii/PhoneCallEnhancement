@@ -20,8 +20,6 @@ import android.os.Process;
 import android.util.Base64;
 import android.util.Log;
 import android.view.View;
-import android.view.ViewGroup;
-import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 
@@ -62,14 +60,6 @@ import ai.picovoice.koala.KoalaActivationRefusedException;
 import ai.picovoice.koala.KoalaActivationThrottledException;
 import ai.picovoice.koala.KoalaException;
 import ai.picovoice.koala.KoalaInvalidArgumentException;
-import ai.picovoice.leopard.Leopard;
-import ai.picovoice.leopard.LeopardActivationException;
-import ai.picovoice.leopard.LeopardActivationLimitException;
-import ai.picovoice.leopard.LeopardActivationRefusedException;
-import ai.picovoice.leopard.LeopardActivationThrottledException;
-import ai.picovoice.leopard.LeopardException;
-import ai.picovoice.leopard.LeopardInvalidArgumentException;
-import ai.picovoice.leopard.LeopardTranscript;
 
 public class ChatActivity extends AppCompatActivity {
 
@@ -101,8 +91,6 @@ public class ChatActivity extends AppCompatActivity {
     }
     private String referenceFilepath;
     private String enhancedFilepath;
-    private MediaPlayer referenceMediaPlayer;
-    private MediaPlayer enhancedMediaPlayer;
     private MicrophoneReader microphoneReader;
 
     private AudioRecord audioRecord;
@@ -110,7 +98,7 @@ public class ChatActivity extends AppCompatActivity {
     private File cache;
 
     private float volumeSize;
-    StringBuilder stringBuilder;
+    StringBuilder userSB;
 
     // CONSTANTS
     public static int MY_PERMISSIONS_RECORD_AUDIO = 1;
@@ -135,7 +123,7 @@ public class ChatActivity extends AppCompatActivity {
         binding.chatRecyclerView.setAdapter(adapter);
 
         microphoneReader = new MicrophoneReader();
-        stringBuilder = new StringBuilder();
+        userSB = new StringBuilder();
 
         referenceFilepath = getApplicationContext().getFileStreamPath("reference.wav").getAbsolutePath();
         enhancedFilepath = getApplicationContext().getFileStreamPath("enhanced.wav").getAbsolutePath();
@@ -165,12 +153,6 @@ public class ChatActivity extends AppCompatActivity {
         super.onDestroy();
         if (isFinishing() && audioRecord != null) {
             stopRecording();
-        }
-        if (referenceMediaPlayer != null) {
-            referenceMediaPlayer.release();
-        }
-        if (enhancedMediaPlayer != null) {
-            enhancedMediaPlayer.release();
         }
         koala.delete();
         cheetah.delete();
@@ -211,11 +193,25 @@ public class ChatActivity extends AppCompatActivity {
 
     public void onClickRecord(View view) {
         try {
-            if (hasRecordPermission()) {
-                startRecording();
-                microphoneReader.start();
+            if (binding.recordButton.isChecked()) {
+                stop.set(false);
+
+
+                if (hasRecordPermission()) {
+                    startRecording();
+                    microphoneReader.start();
+                } else {
+                    checkRecordAudioPermission();
+                }
+
             } else {
-                checkRecordAudioPermission();
+                stop.set(true);
+                microphoneReader.stop();
+
+                // Send audio to server
+                if(webSocket != null) {
+                    webSocket.sendAudio(enhancedFilepath);
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -290,20 +286,21 @@ public class ChatActivity extends AppCompatActivity {
 
     private void updateTranscriptView(String transcript) {
         runOnUiThread(() -> {
-            stringBuilder.append(transcript);
-            if (stringBuilder.lastIndexOf("\\.") != -1) {
-                String[] sentences = stringBuilder.toString().split("\\.", 2);
+            userSB.append(transcript);
+            if (userSB.lastIndexOf("\\.") != -1) {
+                String[] sentences = userSB.toString().split("\\.", 2);
                 // Make a new message bubble
                 ChatMessage message = new ChatMessage();
                 message.message = sentences[0];
                 message.sender = "User";
                 messages.add(message);
+                adapter.notifyItemInserted(messages.size()-1);
                 // set the remaining part
+                userSB = new StringBuilder(sentences[1]);
                 binding.inputMessage.setText(sentences[1]);
-                adapter.notifyItemInserted(messages.size());
             }
             else {
-                binding.inputMessage.setText(stringBuilder.toString());
+                binding.inputMessage.setText(userSB.toString());
             }
         });
     }
