@@ -10,6 +10,7 @@ import java.io.FileOutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Queue;
@@ -26,6 +27,8 @@ public class WebSocketClient {
     private Queue<String> incomingString;
     private Queue<byte[]> receivedInformation;
     private String username;
+
+    //private ArrayList<Long> pp = new ArrayList<Long>();
 
     private long pingv;
 
@@ -148,6 +151,8 @@ public class WebSocketClient {
                     long timeStamp = Long.parseLong(s.split(">")[1]);
                     long currUnix = System.currentTimeMillis();
                     //Log.d(TAG, currUnix + "ms");
+                    //pp.add( Math.abs((currUnix - timeStamp) ));
+                    //System.out.println(pp.toString());
                     pingv = Math.abs((currUnix - timeStamp) );
 //                    Log.d(TAG, "Curr delay:" + (currUnix - timeStamp) + "ms");
                     String type = s.split(">")[2];
