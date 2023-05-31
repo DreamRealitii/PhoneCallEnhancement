@@ -4,6 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="#FFFFFF"
     tools:context=".MainActivity">
 
     <LinearLayout
@@ -83,6 +84,7 @@
         android:id="@+id/recordButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:button="@android:drawable/ic_menu_send"
         android:onClick="onClickRecord"
         android:textOff="Record"
         android:textOn="Stop"
@@ -161,6 +163,7 @@
         android:id="@+id/toggleButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:button="@android:drawable/ic_input_add"
         android:checked="false"
         android:onClick="onClickVolumeButton"
         android:text="Volume"
