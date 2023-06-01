@@ -14,7 +14,7 @@ public class VolumeControl {
     private static final int SMOOTHNESS = 5;
     // The volumes calculated from the previous runs of NormalizeVolume().
     private static final List<Double> previousVolumes = initialList();
-    private static boolean enabled = true;
+    private static boolean enabled = false;
 
     public static void ToggleEnabled() {
         enabled = !enabled;

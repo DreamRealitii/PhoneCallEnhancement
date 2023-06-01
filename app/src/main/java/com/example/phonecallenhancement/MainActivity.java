@@ -452,7 +452,7 @@ public class MainActivity extends AppCompatActivity {
                         }
 
                         if (isGenerateOtherName.get()) {
-                            stringBuilder.append("\n").append(usernames.getFirst()).append(":\n");
+                            stringBuilder.append("\n\n").append(usernames.getFirst()).append(":\n");
                             isGenerateOtherName.set(false);
                             isGenerateYourName.set(true);
                         }
@@ -618,7 +618,7 @@ public class MainActivity extends AppCompatActivity {
             AudioRecord audioRecord = null;
 
             if (isGenerateYourName.get()) {
-                stringBuilder.append("\nYou:\n");
+                stringBuilder.append("\n\nYou:\n");
                 isGenerateYourName.set(false);
                 isGenerateOtherName.set(true);
             }
