@@ -121,9 +121,6 @@ public class MainActivity extends AppCompatActivity {
 
         actionBar = getSupportActionBar();
         actionBar.setTitle("Speech Enhancement");
-        actionBar.setBackgroundDrawable(ResourcesCompat.getDrawable(getResources(), R.drawable.bg, null));
-        actionBar.setHomeButtonEnabled(true);
-        actionBar.setDisplayOptions(ActionBar.DISPLAY_HOME_AS_UP);
 
         initKoala();
         Log.d(TAG,"koala rate: " + koala.getSampleRate()); //16000 hz
