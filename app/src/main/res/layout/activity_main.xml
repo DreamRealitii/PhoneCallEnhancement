@@ -2,11 +2,18 @@
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/constraintLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#FFFFFF"
-    android:foreground="@drawable/ic_launcher_foreground"
     tools:context=".MainActivity">
+
+    <ImageView
+        android:id="@+id/my_image_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:alpha="0.05"
+        android:scaleType="fitCenter"
+        android:src="@drawable/uwlogo" />
 
     <LinearLayout
         android:id="@+id/wavesLayout"
@@ -22,7 +29,8 @@
             android:id="@+id/outgoing"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="outgoing:" />
+            android:text="Outgoing:"
+            android:textStyle="bold" />
 
         <com.example.phonecallenhancement.VisualizerView
             android:id="@+id/beforeWave"
@@ -36,7 +44,8 @@
             android:id="@+id/incoming"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="incoming:"
+            android:text="Incoming:"
+            android:textStyle="bold"
             app:autoSizeTextType="uniform" />
 
         <com.example.phonecallenhancement.VisualizerView
@@ -63,7 +72,8 @@
             android:id="@+id/transcript"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="transcript:" />
+            android:text="Transcript:"
+            android:textStyle="bold" />
 
         <FrameLayout
             android:id="@+id/transcriptSentenceLayout"

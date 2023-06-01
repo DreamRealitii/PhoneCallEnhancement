@@ -1,14 +1,20 @@
 package com.example.phonecallenhancement;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.app.ActivityCompat;
-import androidx.core.content.res.ResourcesCompat;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.pm.PackageManager;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.ColorFilter;
+import android.graphics.PixelFormat;
+import android.graphics.drawable.Drawable;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioRecord;
@@ -21,8 +27,6 @@ import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
-
-import com.example.phonecallenhancement.unused.MicrophoneReader;
 
 import java.io.File;
 import java.io.IOException;
@@ -121,6 +125,30 @@ public class MainActivity extends AppCompatActivity {
 
         actionBar = getSupportActionBar();
         actionBar.setTitle("Speech Enhancement");
+        actionBar.setBackgroundDrawable(new Drawable() {
+            @Override
+            public void draw(@NonNull Canvas canvas) {
+                // uw purple
+                // rgba(48,3,112,255)
+                int uwColor = Color.rgb(48,3,112);
+                canvas.drawColor(uwColor);
+            }
+
+            @Override
+            public void setAlpha(int i) {
+
+            }
+
+            @Override
+            public void setColorFilter(@Nullable ColorFilter colorFilter) {
+
+            }
+
+            @Override
+            public int getOpacity() {
+                return PixelFormat.OPAQUE;
+            }
+        });
 
         initKoala();
         Log.d(TAG,"koala rate: " + koala.getSampleRate()); //16000 hz
