@@ -44,12 +44,11 @@ public class BubbleView extends View {
         if (shorts == null) {
             return;
         }
-        float sum = 0;
+        float max = shorts[0];
         for (short num : shorts) {
-            sum += num;
+            max = max < num ? num : max;
         }
-        float avg = sum / shorts.length;
-        size = maxSize * (avg / Short.MAX_VALUE + 1) / 2;
+        size = maxSize * (max / Short.MAX_VALUE + 1) / 2;
         invalidate();
     }
 

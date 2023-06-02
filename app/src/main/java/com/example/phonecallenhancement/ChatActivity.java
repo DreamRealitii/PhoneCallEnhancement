@@ -111,6 +111,8 @@ public class ChatActivity extends AppCompatActivity {
         binding = ActivityChatBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
+        getSupportActionBar().hide();
+
         cache = getCacheDir();
 
         volumeSize = binding.layoutVolume.getLayoutParams().width;
@@ -144,9 +146,6 @@ public class ChatActivity extends AppCompatActivity {
             webSocket = new WebSocketClient(cache);
         }
     }
-
-
-
 
     @Override
     protected void onDestroy() {
@@ -212,11 +211,25 @@ public class ChatActivity extends AppCompatActivity {
                 if(webSocket != null) {
                     webSocket.sendAudio(enhancedFilepath);
                 }
+
+                MakeMessage();
+
             }
         } catch (Exception e) {
             e.printStackTrace();
             // Toast.makeText(this, "Audio stop command interrupted\n", Toast.LENGTH_SHORT).show();
         }
+    }
+
+    private void MakeMessage() {
+        String content = binding.inputMessage.getText().toString();
+        ChatMessage message = new ChatMessage();
+        message.message = content;
+        message.sender = "User";
+        messages.add(message);
+        adapter.notifyItemInserted(messages.size());
+        // set the remaining part
+        runOnUiThread(() -> binding.inputMessage.setText(""));
     }
 
     public void onClickVolumeButton(View view) {
@@ -286,22 +299,7 @@ public class ChatActivity extends AppCompatActivity {
 
     private void updateTranscriptView(String transcript) {
         runOnUiThread(() -> {
-            userSB.append(transcript);
-            if (userSB.lastIndexOf("\\.") != -1) {
-                String[] sentences = userSB.toString().split("\\.", 2);
-                // Make a new message bubble
-                ChatMessage message = new ChatMessage();
-                message.message = sentences[0];
-                message.sender = "User";
-                messages.add(message);
-                adapter.notifyItemInserted(messages.size()-1);
-                // set the remaining part
-                userSB = new StringBuilder(sentences[1]);
-                binding.inputMessage.setText(sentences[1]);
-            }
-            else {
-                binding.inputMessage.setText(userSB.toString());
-            }
+            binding.inputMessage.append(transcript);
         });
     }
 
