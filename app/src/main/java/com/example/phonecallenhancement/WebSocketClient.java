@@ -52,6 +52,7 @@ public class WebSocketClient {
             File file = new File(s);
             StringBuilder encodedString = new StringBuilder();
             try {
+                System.out.println("Encoding," + System.currentTimeMillis());
                 FileInputStream fileInputStream = new FileInputStream(file);
 
                 byte fileContent[] = new byte[3000];
@@ -60,12 +61,14 @@ public class WebSocketClient {
                     encodedString.append(Base64.getEncoder().encodeToString(fileContent));
                 }
                 fileInputStream.close();
+                System.out.println("Send," + System.currentTimeMillis());
                 //webSocketClient.send(s.toString());
                 webSocketClient.send(username + ">" + (System.currentTimeMillis()) + ">A>"+ encodedString.toString());
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            Log.i("WebSocket", "Done sending!");
+
+            Log.i("WebSocket", "Done sending!" + System.currentTimeMillis());
             //webSocketClient.send(s);
         }else{
             Log.i("WebSocket", "DISCONNECTED!");
@@ -156,7 +159,9 @@ public class WebSocketClient {
                     pingv = Math.abs((currUnix - timeStamp) );
 //                    Log.d(TAG, "Curr delay:" + (currUnix - timeStamp) + "ms");
                     String type = s.split(">")[2];
-                    if(type.equals("A")  && !s.split(">")[0].equals(username)) {
+                    //if(type.equals("A")  && !s.split(">")[0].equals(username)) {
+                    if(type.equals("A")  && s.split(">")[0].equals(username)) {
+                        System.out.println("Rcv," + System.currentTimeMillis());
                         String b64Data = s.split(">")[3];
                         //Log.i("WebSocket", b64Data);
                         decodedBytes = Base64.getDecoder().decode(b64Data.getBytes());
@@ -171,7 +176,7 @@ public class WebSocketClient {
                         FileOutputStream fileoutputstream = new FileOutputStream(outputFile);
                         fileoutputstream.write(decodedBytes);
                         fileoutputstream.close();
-
+                        System.out.println("Try play," + System.currentTimeMillis());
                         try {
                             mp.setDataSource(outputFile.toString());
                             mp.prepare();

@@ -266,6 +266,7 @@ public class MainActivity extends AppCompatActivity {
 
                 // Send audio to server
                 if(webSocket != null) {
+                    System.out.println("Sent," + System.currentTimeMillis());
                     webSocket.sendAudio(enhancedFilepath);
                 }
             }
@@ -560,6 +561,7 @@ public class MainActivity extends AppCompatActivity {
                 return;
             }
 
+            System.out.println("Started," + System.currentTimeMillis());
             referenceFile = new RandomAccessFile(referenceFilepath, "rws");
             enhancedFile = new RandomAccessFile(enhancedFilepath, "rws");
             writeWavHeader(referenceFile, (short) 1, (short) 16, 16000, 0);
@@ -680,6 +682,7 @@ public class MainActivity extends AppCompatActivity {
                         });
                     }
                 }
+                System.out.println("Recording," + System.currentTimeMillis());
 
                 final CheetahTranscript transcriptObj = cheetah.flush();
                 webSocket.sendTranscript(transcriptObj.getTranscript());
@@ -688,6 +691,7 @@ public class MainActivity extends AppCompatActivity {
                 //updateTranscriptView(transcriptObj.getTranscript());
 
                 audioRecord.stop();
+                System.out.println("Transcripted," + System.currentTimeMillis());
 
                 runOnUiThread(() -> {
                     double secondsRecorded = ((double) (totalSamplesWritten) / (double) (koala.getSampleRate()));
@@ -702,6 +706,8 @@ public class MainActivity extends AppCompatActivity {
                     writeFrame(enhancedFile, frameBufferEnhanced);
                     enhancedSamplesWritten += frameBufferEnhanced.length;
                 }
+                System.out.println("Koala-ed," + System.currentTimeMillis());
+
             } catch (IllegalArgumentException | IllegalStateException | IOException e) {
                 throw new KoalaException(e);
             } finally {
