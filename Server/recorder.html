@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>rrd</title>
+</head>
+<body>
+    <button id="record-button">Record</button>
+    <script>
+        var mediaStream;
+
+        navigator.mediaDevices.getUserMedia({ audio: true })
+            .then(function(stream) {
+                mediaStream = stream;
+
+                var mediaRecorder;
+
+                var options = { mimeType: 'audio/webm' };
+
+                mediaRecorder = new MediaRecorder(mediaStream, options);
+
+                var socket = new WebSocket(getWebSocketEndpoint() + '/ws/channel-1');
+
+                document.getElementById('record-button').addEventListener('click', function() {
+				
+                    if (mediaRecorder.state === 'inactive') {
+					console.log("OK");
+                        mediaRecorder.start();
+                    } else {
+					console.log("OKSTOP");
+                        mediaRecorder.stop();
+                    }
+                });
+
+				mediaRecorder.addEventListener('dataavailable', function(event) {
+					if (event.data.size > 0) {
+						const reader = new FileReader();
+						reader.onload = function() {
+							const base64Data = reader.result.split(',')[1];
+							socket.send(base64Data);
+						};
+						reader.readAsDataURL(event.data);
+					}
+				});
+
+            });
+
+                    // from arozos, collabed project
+        function getWebSocketEndpoint(){
+            let protocol = "wss://";
+            if (location.protocol !== 'https:') {
+                protocol = "ws://";
+            }
+            let port = window.location.port;
+            if (window.location.port == ""){
+                if (location.protocol !== 'https:') {
+                    port = "80";
+                }else{
+                    port = "443";
+                }
+                
+            }
+            let wsept = (protocol + window.location.hostname + ":" + port);
+            return wsept;
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Mobile Systems & Networking Capstone - UW 2023 Spring</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-KK94CHFLLe+nY2dmCWGMq91rCGa5gtU4mk92HdvYe+M/SXH301p5ILy+dN9+nJOZ" crossorigin="anonymous">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.4/jquery.min.js" integrity="sha512-pumBsjNRGGqkPzKHndZMaAG+bir374sORyzM3uulLV14lN5LyykqNk8eEeUlUkB3U0M4FApyaHraT65ihJhDpQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  </head>
+  <body>
+    <div class="container">
+        <h1>Mobile Systems & Networking Capstone - UW 2023 Spring</h1>
+        <button type="button" id="record" onclick="measure()" class="btn btn-primary">Ping Measurement</button>
+        <form>
+            <div class="form-group">
+                <label for="incoming">MATLAB Code</label>
+                <textarea class="form-control" id="incoming" rows="30"></textarea>
+              </div>
+        </form>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ENjdO4Dr2bkBIFxQpeoTz1HIcje39Wm4jDKdf19U8gI4ddQ3GYNS7NTKfAdVQSZe" crossorigin="anonymous"></script>
+    <script>
+        var socket = new WebSocket(getWebSocketEndpoint() + '/ws/channel-1');
+        var i = 0;
+
+        $("#incoming").append("x = [");
+        for(j = 0; j <= 2000; j++) {
+            $("#incoming").append(j + " ");
+        }
+        $("#incoming").append("]\n");
+        $("#incoming").append("y = [");
+
+        function measure() {
+            socket.send(new Date().getTime());
+        }
+
+        socket.onmessage = function (event) {
+            endTime = new Date().getTime();
+            const pingTime = endTime - event.data;
+            console.log(`Ping time: ${pingTime}ms`);
+            $("#incoming").append(pingTime + " ");
+            if(i < 2000) {
+                measure();
+                i++;
+            }else{
+                $("#incoming").append("]\n");
+                $("#incoming").append("plot(x,y, '+')");
+            }
+        };
+
+        // from arozos, collabed project
+        function getWebSocketEndpoint(){
+            let protocol = "wss://";
+            if (location.protocol !== 'https:') {
+                protocol = "ws://";
+            }
+            let port = window.location.port;
+            if (window.location.port == ""){
+                if (location.protocol !== 'https:') {
+                    port = "80";
+                }else{
+                    port = "443";
+                }
+                
+            }
+            let wsept = (protocol + window.location.hostname + ":" + port);
+            return wsept;
+        }
+
+
+    </script>
+  </body>
+</html>

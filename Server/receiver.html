@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>rcv</title>
+</head>
+<body>
+    <audio id="audio-player"></audio>
+    <script>
+        var socket = new WebSocket(getWebSocketEndpoint() + '/ws/channel-1');
+
+
+
+        socket.addEventListener('message', function(event) {
+			const base64Data = event.data;
+			const binaryData = atob(base64Data);
+			const audioData = new Uint8Array(binaryData.length);
+			for (let i = 0; i < binaryData.length; i++) {
+				audioData[i] = binaryData.charCodeAt(i);
+			}
+			const audioBlob = new Blob([audioData.buffer], { type: 'audio/webm' });
+			const audioUrl = URL.createObjectURL(audioBlob);
+			const audioElement = new Audio(audioUrl);
+			audioElement.play();
+        });
+
+		function getWebSocketEndpoint(){
+        let protocol = "wss://";
+        if (location.protocol !== 'https:') {
+            protocol = "ws://";
+        }
+        let port = window.location.port;
+        if (window.location.port == ""){
+            if (location.protocol !== 'https:') {
+                port = "80";
+            }else{
+                port = "443";
+            }
+            
+        }
+        let wsept = (protocol + window.location.hostname + ":" + port);
+        return wsept;
+    }
+    </script>
+</body>
+</html>

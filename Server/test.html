@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>rrd</title>
+</head>
+<body>
+    <button onclick="play()">PLAY</button>
+    <script>    
+const audioContext = new AudioContext();
+        function play() {
+            // Create an AudioContext object
+            const audioContext = new AudioContext();
+
+            // Load the audio files
+            const audioFile1 = 'audio2.mp3';
+            const audioFile2 = 'audio1.mp3';
+
+            // Create the audio source nodes
+            const audioSourceNode1 = audioContext.createBufferSource();
+            const audioSourceNode2 = audioContext.createBufferSource();
+            const audioSourceNode3 = audioContext.createBufferSource();
+
+            // Create a GainNode to adjust the volume of audioSourceNode2
+            const gainNode = audioContext.createGain();
+            gainNode.gain.value = 0.5;
+            var length = 0;
+
+            // Fetch the audio files and decode them into AudioBuffer objects
+            fetch(audioFile1)
+            .then(response => response.arrayBuffer())
+            .then(buffer => audioContext.decodeAudioData(buffer))
+            .then(audioBuffer => {
+                audioSourceNode1.buffer = audioBuffer;
+                length = audioBuffer.duration;
+                audioSourceNode1.connect(gainNode);
+                audioSourceNode1.start();
+            }).then(() => {
+                console.log(length);
+                fetch(audioFile2)
+                .then(response => response.arrayBuffer())
+                .then(buffer => audioContext.decodeAudioData(buffer))
+                .then(audioBuffer => {
+                    audioSourceNode2.buffer = audioBuffer;
+                    gainNode.connect(audioContext.destination);
+                    audioSourceNode2.connect(gainNode);
+                    audioSourceNode2.start(length);
+
+                });
+            });
+        }
+
+    </script>
+</body>
+</html>
