@@ -159,8 +159,8 @@ public class WebSocketClient {
                     pingv = Math.abs((currUnix - timeStamp) );
 //                    Log.d(TAG, "Curr delay:" + (currUnix - timeStamp) + "ms");
                     String type = s.split(">")[2];
-                    //if(type.equals("A")  && !s.split(">")[0].equals(username)) {
-                    if(type.equals("A")  && s.split(">")[0].equals(username)) {
+                    if(type.equals("A")  && !s.split(">")[0].equals(username)) {
+                    //if(type.equals("A")  && s.split(">")[0].equals(username)) {
                         System.out.println("Rcv," + System.currentTimeMillis());
                         String b64Data = s.split(">")[3];
                         //Log.i("WebSocket", b64Data);
